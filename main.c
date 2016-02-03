@@ -1,6 +1,4 @@
 #include "airkiss.h"
-#include <stdio.h>
-#include <unistd.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <unistd.h>
@@ -27,21 +25,6 @@ struct nl80211_state {
     struct genl_family *nl80211;
 } state;
 
-typedef enum {
-        DT_NULL = 0,
-        DT_WLANNG,
-        DT_HOSTAP,
-        DT_MADWIFI,
-        DT_MADWIFING,
-        DT_BCM43XX,
-        DT_ORINOCO,
-        DT_ZD1211RW,
-        DT_ACX,
-        DT_MAC80211_RT,
-        DT_AT76USB,
-        DT_IPW2200
-
-} DRIVER_TYPE;
 int ieee80211_channel_to_frequency(int chan, enum nl80211_band band)
 {
 	/* see 802.11 17.3.8.3.2 and Annex J
@@ -141,7 +124,7 @@ static int linux_set_channel_nl80211(const char *if_name, int channel)
     NLA_PUT_U32(msg, NL80211_ATTR_WIPHY_FREQ, freq);
     NLA_PUT_U32(msg, NL80211_ATTR_WIPHY_CHANNEL_TYPE, htval);
 
-    //ret = nl_send_auto_complete(state.nl_sock,msg);
+    nl_send_auto_complete(state.nl_sock,msg);
     nlmsg_free(msg);
 
     return 0;
@@ -152,7 +135,7 @@ static int linux_set_channel_nl80211(const char *if_name, int channel)
 
 
 
-pcap_t *handle;                         /* Session handle */
+pcap_t *handle;                         /* Pcap session handle */
 
 static airkiss_context_t *akcontex = NULL;
 const airkiss_config_t akconf = { 
@@ -189,8 +172,6 @@ void recv_callback(u_char *args, const struct pcap_pkthdr *header, const u_char 
     else if(ret == AIRKISS_STATUS_CHANNEL_LOCKED)
     {
         startTimer(&my_timer, 0);
-        //printf("HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHERE IIIIIIIIIIIIIIIIIIIIII CCCCCCCCCCCCCCCCCOME!!!!!!!!\n");
-        //printf("len: %d , caplen: %d\n", header->len, header->caplen);
         printf("Lock channel in %d\n", channel);
     }
     else if(ret == AIRKISS_STATUS_COMPLETE)
@@ -248,6 +229,7 @@ int main(int argc, char *argv[])
     signal(SIGALRM,(__sighandler_t)&switch_channel_callback);
     
     pcap_loop(handle, -1, recv_callback, NULL);
+    nl80211_cleanup(&state);
 
     return 0;
 }

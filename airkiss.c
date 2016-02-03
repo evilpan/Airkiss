@@ -156,7 +156,7 @@ int airkiss_init(airkiss_context_t* context,
 	akconf->memset(air_cfg , 0, sizeof(_airkiss_local_cfg));
 	air_cfg->airkiss_state = AIRKISS_STATE_IDLE;
 
-	printf("air_cfg size:%d\n", sizeof(_airkiss_local_cfg));
+	printf("air_cfg size:%ld\n", sizeof(_airkiss_local_cfg));
 	return 0;
 }
 
@@ -254,7 +254,7 @@ static void airkiss_process_prefix_code(airkiss_context_t* context,
 
 		air_cfg->pswd_crc = ((air_cfg->data.prefix_code.record[2] & 0x000F) << 4) + (air_cfg->data.prefix_code.record[3] & 0x000F);
 		air_cfg->airkiss_state += 1;
-		air_cfg->need_seq = ((air_cfg->pswd_len + 1) + 3)/4; //Ö»È¡ÃÜÂëºÍrandom
+		air_cfg->need_seq = ((air_cfg->pswd_len + 1) + 3)/4; //random
 		air_cfg->seq_success_map_cmp = (1 << air_cfg->need_seq) - 1; // EXAMPLE: need_seq = 5; seq_success_map_cmp = 0x1f;
 			
 		resest_airkiss_data();
@@ -275,8 +275,8 @@ static void airkiss_process_sequence(airkiss_context_t* context,
 
 	airkiss_record_move_ones(air_cfg->data.seq_code.record, MAX_SEQ_CODE_RECORD);
 
-	if(((air_cfg->data.seq_code.record[0]>>7)&0x0001==1) &&
-		((air_cfg->data.seq_code.record[1]>>7)&0x0001==1) && 
+	if((((air_cfg->data.seq_code.record[0]>>7)&0x0001)==1) &&
+		(((air_cfg->data.seq_code.record[1]>>7)&0x0001)==1) && 
 		((air_cfg->data.seq_code.record[1]&0x7f) <= ((air_cfg->total_len>>2)+1)))
 	{
 		tempBuffer[0]=air_cfg->data.seq_code.record[0]&0x7F; 
