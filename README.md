@@ -18,6 +18,50 @@
 - [Airkss技术实现方案][airkiss_doc]
 - [How does TI CC3000 wifi smart config work?][smartcfg_doc]
 
+## Build
+
+`main.c`在Linux下进行切换wifi模式,切换信道以及抓包,实现了一个简单的airkiss上层应用.
+编译和运行过程如下:
+
+    $ make clean
+    $ make
+    $ sudo ./a.out wlan0
+
+开始运行后可以用微信或者airkiss\_debugger发送wifi密码进行测试, 如我发送了123456789,则有如下输出:
+
+```
+air_cfg size:96
+Airkiss verson: V1.0
+scan all channels
+scan all channels
+scan all channels
+airkiss_recv_discover success
+base len:42
+Lock channel in 8
+airkiss_process_magic_code success
+total_len:17, ssid crc:d
+airkiss_process_prefix_code success
+pswd_len:9, pswd_crc:9c, need seq:3, seq map:7
+seq:0, 31,32,33,34
+now seq map:1
+seq:1, 35,36,37,38
+now seq map:3
+seq:2, 39,5d,4c,49
+now seq map:7
+Airkiss completed.
+get result:
+ssid:(null)
+length:0
+key:123456789
+length:9
+ssid_crc:d
+random:93
+```
+
+上层应用收到wifi帐号密码之后进行连接,然后再向10000端口广播random值即可完成配置.
+
+> 注: Linux下抓包需要用到`libnl-3`, `libnl-genl-3` 以及 `libpcap`, 操作网卡需要root权限.
+
 [ruix]: http://pannzh.github.io
 [akdbg]: http://iot.weixin.qq.com/wiki/doc/wifi/AirKissDebugger.apk
 [airkiss]:http://iot.weixin.qq.com/wiki/doc/wifi/AirKissDoc.pdf
