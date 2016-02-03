@@ -1,17 +1,21 @@
 # Airkiss
 
-由于微信官方的airkiss静态库调试起来很不方便,而且也无法按需要进行拓展,
-因此在已公开的Airkiss协议基础上实现了一份源码. 最初版本参考了[勋睿科技][xrf]
-开发板里提供的驱动代码.
-
-> 本例程实现的源码在[airkiss\_debugger][akdbg]以及最新版的微信(6.3.13)上测试通过, 但不保证100%兼容微信官方的静态库.
 
 ## About Airkiss
 
 [Airkiss][airkiss]是微信提出的一种无线应用层协议,主要用于给无法交互的硬件设备进行网络配置,
 如(智能)插座,灯泡,飞机杯等. 其原理是将硬件设备的网卡置于监听模式(monitor mode),
-又称为混杂模式(promiscous mode), 从而获取周围的802.11无线数据帧, 俗称抓包.
+又称为混杂模式(promiscous mode), 从而获取周围的802.11无线数据帧, 俗称抓包. 
+加密的无线数据中length字段是可见的,利用这个字段我们就能约定一种传输数据的协议,
+从而在硬件设备初次进入环境时为其提供wifi的帐号密码等信息.
 其原型是TI最早提出的[Smart Config][smartcfg].
+
+由于微信官方的airkiss静态库调试起来很不方便,而且也无法按需要进行拓展,
+因此在已公开的Airkiss协议基础上实现了一份C代码. 最初版本参考了[勋睿科技][xrf]
+开发板里提供的驱动程序.
+
+> 注:
+> 本例程实现的源码在[airkiss\_debugger][akdbg]以及最新版的微信(6.3.13)上测试通过, 但不保证100%兼容微信官方的静态库.
 
 具体的实现细节可以参考下列**非官方**的资料和文档:
 
@@ -58,9 +62,10 @@ ssid_crc:d
 random:93
 ```
 
-上层应用收到wifi帐号密码之后进行连接,然后再向10000端口广播random值即可完成配置.
+上层应用收到wifi帐号密码之后进行连接,根据airkiss协议然后再向10000端口广播random值通知发送端即可完成配置.
 
-> 注: Linux下抓包需要用到`libnl-3`, `libnl-genl-3` 以及 `libpcap`, 操作网卡需要root权限.
+> 注: 
+> Linux下抓包需要用到`libnl-3`, `libnl-genl-3` 以及 `libpcap`, 操作网卡需要root权限.
 
 [xrf]: http://www.xrf.net.cn
 [akdbg]: http://iot.weixin.qq.com/wiki/doc/wifi/AirKissDebugger.apk
