@@ -167,7 +167,7 @@ void recv_callback(u_char *args, const struct pcap_pkthdr *header, const u_char 
     ret = airkiss_recv(akcontex, (void *)packet, header->len);
     if(ret==AIRKISS_STATUS_CONTINUE)
     {
-        //return;
+        return;
     }
     else if(ret == AIRKISS_STATUS_CHANNEL_LOCKED)
     {
@@ -183,7 +183,16 @@ void recv_callback(u_char *args, const struct pcap_pkthdr *header, const u_char 
 
         pcap_close(handle);
     }
-    //printf("len: %d, airkiss ret: %d\n", header->len, ret);
+    printf("[len: %d, airkiss ret: %d]\n", header->len, ret);
+    //print 802.11 MAC header
+    int i;
+    unsigned char ch;
+    for(i=0; i<24; i++)
+    {
+        ch = (unsigned char)*(packet + i);
+        printf("0x%02x ", ch);
+    }
+    printf("\n");
 }
 int main(int argc, char *argv[])
 {

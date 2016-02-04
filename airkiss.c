@@ -156,12 +156,11 @@ int airkiss_init(airkiss_context_t* context,
 	akconf->memset(air_cfg , 0, sizeof(_airkiss_local_cfg));
 	air_cfg->airkiss_state = AIRKISS_STATE_IDLE;
 
-	printf("air_cfg size:%ld\n", sizeof(_airkiss_local_cfg));
+	akconf->printf("air_cfg size:%ld\n", sizeof(_airkiss_local_cfg));
 	return 0;
 }
 
-static void airkiss_deinit(airkiss_context_t* context, 
-							const airkiss_config_t* config)
+static void airkiss_deinit()
 {
 	akconf = 0;
 	akcontex = 0;
@@ -175,14 +174,13 @@ static void resest_airkiss_data()
 	akconf->memset(&air_cfg->data, 0, sizeof(union airkiss_data));
 }
 
-static void airkiss_recv_discover(airkiss_context_t* context, 
-							const void* frame, unsigned short length)
+static void airkiss_recv_discover(const void* frame, unsigned short length)
 {
 	int success = 0;
 	if(!air_cfg)
 		return;
 
-	//printf("airkiss length = %d\n", length);
+	//akconf->printf("airkiss length = %d\n", length);
 	if(length > 100)
 		return;
 
@@ -203,8 +201,8 @@ static void airkiss_recv_discover(airkiss_context_t* context,
 	{
 		air_cfg->airkiss_state += 1;
 		resest_airkiss_data();
-		printf("airkiss_recv_discover success\n");
-		printf("base len:%d\n", air_cfg->base_len);
+		akconf->printf("airkiss_recv_discover success\n");
+		akconf->printf("base len:%d\n", air_cfg->base_len);
 	}
 }
 
@@ -228,8 +226,8 @@ static void airkiss_process_magic_code(airkiss_context_t* context,
 		air_cfg->ssid_crc = ((air_cfg->data.magic_code.record[2] & 0x000F) << 4) + (air_cfg->data.magic_code.record[3] & 0x000F);
 		air_cfg->airkiss_state += 1;
 		resest_airkiss_data();
-		printf("airkiss_process_magic_code success\n");
-		printf("total_len:%d, ssid crc:%x\n", air_cfg->total_len, air_cfg->ssid_crc);
+		akconf->printf("airkiss_process_magic_code success\n");
+		akconf->printf("total_len:%d, ssid crc:%x\n", air_cfg->total_len, air_cfg->ssid_crc);
 	}
 }
 
@@ -254,12 +252,12 @@ static void airkiss_process_prefix_code(airkiss_context_t* context,
 
 		air_cfg->pswd_crc = ((air_cfg->data.prefix_code.record[2] & 0x000F) << 4) + (air_cfg->data.prefix_code.record[3] & 0x000F);
 		air_cfg->airkiss_state += 1;
-		air_cfg->need_seq = ((air_cfg->pswd_len + 1) + 3)/4; //random
+		air_cfg->need_seq = ((air_cfg->pswd_len + 1) + 3)/4; //all we need is password and random
 		air_cfg->seq_success_map_cmp = (1 << air_cfg->need_seq) - 1; // EXAMPLE: need_seq = 5; seq_success_map_cmp = 0x1f;
 			
 		resest_airkiss_data();
-		printf("airkiss_process_prefix_code success\n");
-		printf("pswd_len:%d, pswd_crc:%x, need seq:%d, seq map:%x\n", air_cfg->pswd_len, air_cfg->pswd_crc, air_cfg->need_seq, air_cfg->seq_success_map_cmp);
+		akconf->printf("airkiss_process_prefix_code success\n");
+		akconf->printf("pswd_len:%d, pswd_crc:%x, need seq:%d, seq map:%x\n", air_cfg->pswd_len, air_cfg->pswd_crc, air_cfg->need_seq, air_cfg->seq_success_map_cmp);
 	}
 }
 
@@ -286,14 +284,14 @@ static void airkiss_process_sequence(airkiss_context_t* context,
 		tempBuffer[4]=air_cfg->data.seq_code.record[4]&0xff;
 		tempBuffer[5]=air_cfg->data.seq_code.record[5]&0xff;
 
-		printf("seq:%d, %x,%x,%x,%x\n", tempBuffer[1], tempBuffer[2], tempBuffer[3], tempBuffer[4], tempBuffer[5]);
+		akconf->printf("seq:%d, %x,%x,%x,%x\n", tempBuffer[1], tempBuffer[2], tempBuffer[3], tempBuffer[4], tempBuffer[5]);
 		if(tempBuffer[0] == (calcrc_bytes(tempBuffer+1,5)&0x7F) )
 		{
 			int cur_seq = tempBuffer[1];
 
 			airkiss_add_seq_data(&tempBuffer[2], cur_seq);
 
-			printf("now seq map:%x\n", air_cfg->seq_success_map);
+			akconf->printf("now seq map:%x\n", air_cfg->seq_success_map);
 			resest_airkiss_data();
 
 			if(air_cfg->seq_success_map_cmp == air_cfg->seq_success_map)
@@ -301,11 +299,13 @@ static void airkiss_process_sequence(airkiss_context_t* context,
 				air_cfg->random_num = air_cfg->usr_data[air_cfg->pswd_len];
 				air_cfg->usr_data[air_cfg->pswd_len] = 0;
 				air_cfg->pwd = (char*)air_cfg->usr_data;
-				air_cfg->ssid = 0;
+				air_cfg->ssid = NULL;
 				air_cfg->airkiss_state = AIRKISS_STATE_COMPLETE;
 			}
-		}else{
-			printf("invalid seq\n");
+		}
+        else
+        {
+			akconf->printf("invalid seq\n");
 		}
 	}
 }
@@ -314,14 +314,14 @@ static void airkiss_process_sequence(airkiss_context_t* context,
 int airkiss_recv(airkiss_context_t* context, 
 							const void* frame, unsigned short length)
 {
-	//printf("[airkiss_recv %d]", length);
+	//akconf->printf("[airkiss_recv %d]", length);
 	if(!air_cfg)
 		return AIRKISS_STATUS_CONTINUE;
 
 	switch(air_cfg->airkiss_state)
 	{
 		case AIRKISS_STATE_IDLE:
-			airkiss_recv_discover(context, frame, length);
+			airkiss_recv_discover(frame, length);
 			if(air_cfg->airkiss_state == AIRKISS_STATE_SRC_LOCKED)
 				return AIRKISS_STATUS_CHANNEL_LOCKED;
 			break;
