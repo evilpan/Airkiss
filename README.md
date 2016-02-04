@@ -62,6 +62,7 @@ ssid_crc:d
 random:93
 ```
 
+为了加快Airkiss进度,ssid部分不获取而只取其crc,扫描周围的AP并将crc尽行对比,则可以获取目标的ssid信息.
 上层应用收到wifi帐号密码之后进行连接,根据airkiss协议然后再向10000端口广播random值通知发送端即可完成配置.
 
 > 注:  

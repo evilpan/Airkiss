@@ -7,6 +7,7 @@ extern "C" {
 
 /*
  * 定义AIRKISS_ENABLE_CRYPT为1以启用AirKiss加密功能
+ * TODO
  */
 #ifndef AIRKISS_ENABLE_CRYPT
 #define AIRKISS_ENABLE_CRYPT 0

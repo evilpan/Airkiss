@@ -180,7 +180,6 @@ static void airkiss_recv_discover(const void* frame, unsigned short length)
 	if(!air_cfg)
 		return;
 
-	//akconf->printf("airkiss length = %d\n", length);
 	if(length > 100)
 		return;
 
@@ -199,7 +198,7 @@ static void airkiss_recv_discover(const void* frame, unsigned short length)
 	
 	if(success)
 	{
-		air_cfg->airkiss_state += 1;
+		air_cfg->airkiss_state = AIRKISS_STATE_SRC_LOCKED;
 		resest_airkiss_data();
 		akconf->printf("airkiss_recv_discover success\n");
 		akconf->printf("base len:%d\n", air_cfg->base_len);
@@ -224,7 +223,7 @@ static void airkiss_process_magic_code(airkiss_context_t* context,
 	{
 		air_cfg->total_len = ((air_cfg->data.magic_code.record[0] & 0x000F) << 4) + (air_cfg->data.magic_code.record[1] & 0x000F);
 		air_cfg->ssid_crc = ((air_cfg->data.magic_code.record[2] & 0x000F) << 4) + (air_cfg->data.magic_code.record[3] & 0x000F);
-		air_cfg->airkiss_state += 1;
+		air_cfg->airkiss_state = AIRKISS_STATE_MAGIC_CODE_COMPLETE;
 		resest_airkiss_data();
 		akconf->printf("airkiss_process_magic_code success\n");
 		akconf->printf("total_len:%d, ssid crc:%x\n", air_cfg->total_len, air_cfg->ssid_crc);
@@ -251,13 +250,14 @@ static void airkiss_process_prefix_code(airkiss_context_t* context,
 			air_cfg->pswd_len = 0;
 
 		air_cfg->pswd_crc = ((air_cfg->data.prefix_code.record[2] & 0x000F) << 4) + (air_cfg->data.prefix_code.record[3] & 0x000F);
-		air_cfg->airkiss_state += 1;
+		air_cfg->airkiss_state = AIRKISS_STATE_PREFIX_CODE_COMPLETE;
 		air_cfg->need_seq = ((air_cfg->pswd_len + 1) + 3)/4; //all we need is password and random
 		air_cfg->seq_success_map_cmp = (1 << air_cfg->need_seq) - 1; // EXAMPLE: need_seq = 5; seq_success_map_cmp = 0x1f;
 			
 		resest_airkiss_data();
 		akconf->printf("airkiss_process_prefix_code success\n");
-		akconf->printf("pswd_len:%d, pswd_crc:%x, need seq:%d, seq map:%x\n", air_cfg->pswd_len, air_cfg->pswd_crc, air_cfg->need_seq, air_cfg->seq_success_map_cmp);
+		akconf->printf("pswd_len:%d, pswd_crc:%x, need seq:%d, seq map:%x\n", 
+                air_cfg->pswd_len, air_cfg->pswd_crc, air_cfg->need_seq, air_cfg->seq_success_map_cmp);
 	}
 }
 
@@ -305,7 +305,7 @@ static void airkiss_process_sequence(airkiss_context_t* context,
 		}
         else
         {
-			akconf->printf("invalid seq\n");
+			akconf->printf("CRC error, invalid seq.\n");
 		}
 	}
 }
