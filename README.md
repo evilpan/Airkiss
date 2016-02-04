@@ -14,8 +14,8 @@
 因此在已公开的Airkiss协议基础上实现了一份C代码. 最初版本参考了[勋睿科技][xrf]
 开发板里提供的驱动程序.
 
-> 注:
-> 本例程实现的源码在[airkiss\_debugger][akdbg]以及最新版的微信(6.3.13)上测试通过, 但不保证100%兼容微信官方的静态库.
+> 注:  
+> 本例程实现的源码在[airkiss\_debugger][akdbg]以及最新版的微信(6.3.13)上测试通过, 但不保证100%兼容微信官方的静态库.  
 
 具体的实现细节可以参考下列**非官方**的资料和文档:
 
@@ -64,8 +64,10 @@ random:93
 
 上层应用收到wifi帐号密码之后进行连接,根据airkiss协议然后再向10000端口广播random值通知发送端即可完成配置.
 
-> 注: 
-> Linux下抓包需要用到`libnl-3`, `libnl-genl-3` 以及 `libpcap`, 操作网卡需要root权限.
+> 注:  
+> Linux下抓包需要用到`libnl-3`, `libnl-genl-3` 以及 `libpcap`, 操作网卡需要root权限.  
+> 由于不同抓包策略会导致抓到的包格式各不相同,比如有的是带802.11头的数据帧(亦即微信官方要求的格式),  
+> 有的是更底层的比如带Radiotap头的数据,更有的是不带头的纯数据,为了彼此兼容,代码里仅仅用到长度来编解码.
 
 [xrf]: http://www.xrf.net.cn
 [akdbg]: http://iot.weixin.qq.com/wiki/doc/wifi/AirKissDebugger.apk
