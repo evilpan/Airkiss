@@ -63,7 +63,7 @@ typedef struct
 	unsigned char need_seq;
 	unsigned char base_len;
 	unsigned char total_len;
-	unsigned char pswd_crc;
+	unsigned char pswd_lencrc;
 	unsigned char recv_len;
 	unsigned short seq_success_map;
 	unsigned short seq_success_map_cmp;
@@ -136,7 +136,7 @@ static void airkiss_add_seq_data(unsigned char *data, int seq)
 			if((air_cfg->seq_success_map & (1 << seq)) == 0) 
 			{
 				akconf->memcpy(air_cfg->usr_data + seq*4, data, 4);
-				air_cfg->seq_success_map |= 1 << seq;
+				air_cfg->seq_success_map |= (1 << seq);
 			}
 		}
 	}
@@ -248,16 +248,24 @@ static void airkiss_process_prefix_code(airkiss_context_t* context,
 		air_cfg->pswd_len = ((air_cfg->data.prefix_code.record[0] & 0x000F) << 4) + (air_cfg->data.prefix_code.record[1] & 0x000F);
 		if(air_cfg->pswd_len > PASSWORD_MAX_LEN)
 			air_cfg->pswd_len = 0;
-		air_cfg->pswd_crc = ((air_cfg->data.prefix_code.record[2] & 0x000F) << 4) + (air_cfg->data.prefix_code.record[3] & 0x000F);
-		air_cfg->airkiss_state = AIRKISS_STATE_PREFIX_CODE_COMPLETE;
+		air_cfg->pswd_lencrc = ((air_cfg->data.prefix_code.record[2] & 0x000F) << 4) + (air_cfg->data.prefix_code.record[3] & 0x000F);
+        if(calcrc_1byte(air_cfg->pswd_len)==air_cfg->pswd_lencrc)
+        {
+            air_cfg->airkiss_state = AIRKISS_STATE_PREFIX_CODE_COMPLETE;
+        }
+        else
+        {
+            akconf->printf("password length crc error.\n");
+            return;
+        }
 
 		air_cfg->need_seq = ((air_cfg->pswd_len + 1) + 3)/4; //all we need is password and random
 		air_cfg->seq_success_map_cmp = (1 << air_cfg->need_seq) - 1; // EXAMPLE: need_seq = 5; seq_success_map_cmp = 0x1f;
 			
 		resest_airkiss_data();
 		akconf->printf("airkiss_process_prefix_code success\n");
-		akconf->printf("pswd_len:%d, pswd_crc:%x, need seq:%d, seq map:%x\n", 
-                air_cfg->pswd_len, air_cfg->pswd_crc, air_cfg->need_seq, air_cfg->seq_success_map_cmp);
+		akconf->printf("pswd_len:%d, pswd_lencrc:%x, need seq:%d, seq map:%x\n", 
+                air_cfg->pswd_len, air_cfg->pswd_lencrc, air_cfg->need_seq, air_cfg->seq_success_map_cmp);
 	}
 }
 
@@ -273,13 +281,17 @@ static void airkiss_process_sequence(airkiss_context_t* context,
 
 	airkiss_record_move_ones(air_cfg->data.seq_code.record, MAX_SEQ_CODE_RECORD);
 
-	if((((air_cfg->data.seq_code.record[0]>>7)&0x0001)==1) &&
-		(((air_cfg->data.seq_code.record[1]>>7)&0x0001)==1) && 
-		((air_cfg->data.seq_code.record[1]&0x7f) <= ((air_cfg->total_len>>2)+1)))
+	if(((air_cfg->data.seq_code.record[0]&0b110000000)==0b010000000) &&
+		((air_cfg->data.seq_code.record[1]&0b110000000)==0b010000000) && 
+		((air_cfg->data.seq_code.record[2]&0x0100)==0x0100) && 
+		((air_cfg->data.seq_code.record[3]&0x0100)==0x0100) && 
+		((air_cfg->data.seq_code.record[4]&0x0100)==0x0100) && 
+		((air_cfg->data.seq_code.record[5]&0x0100)==0x0100) && 
+		((air_cfg->data.seq_code.record[1]&0x7F) <= ((air_cfg->total_len>>2)+1)))
 	{
-		tempBuffer[0]=air_cfg->data.seq_code.record[0]&0x7F; 
-		tempBuffer[1]=air_cfg->data.seq_code.record[1]&0x7F;
-		tempBuffer[2]=air_cfg->data.seq_code.record[2]&0xFF;
+		tempBuffer[0]=air_cfg->data.seq_code.record[0]&0x7F; //seq crc
+		tempBuffer[1]=air_cfg->data.seq_code.record[1]&0x7F; //seq index
+		tempBuffer[2]=air_cfg->data.seq_code.record[2]&0xFF; //data, same as following
 		tempBuffer[3]=air_cfg->data.seq_code.record[3]&0xFF;
 		tempBuffer[4]=air_cfg->data.seq_code.record[4]&0xFF;
 		tempBuffer[5]=air_cfg->data.seq_code.record[5]&0xFF;
@@ -305,7 +317,7 @@ static void airkiss_process_sequence(airkiss_context_t* context,
 		}
         else
         {
-			akconf->printf("CRC error, invalid seq.\n");
+			akconf->printf("CRC check error, invalid sequence.\n");
 		}
 	}
 }
