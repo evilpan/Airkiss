@@ -127,7 +127,7 @@ static void airkiss_record_move_ones(void *base_addr, int record_num)
 	}
 }
 
-static void airkiss_add_seq_data(unsigned char *data, int seq)
+static void airkiss_add_seq_data(const unsigned char *data, int seq)
 {
 	if(seq < air_cfg->need_seq)
 	{
@@ -256,6 +256,7 @@ static void airkiss_process_prefix_code(airkiss_context_t* context,
         else
         {
             akconf->printf("password length crc error.\n");
+            resest_airkiss_data();
             return;
         }
 
@@ -326,7 +327,6 @@ static void airkiss_process_sequence(airkiss_context_t* context,
 int airkiss_recv(airkiss_context_t* context, 
 							const void* frame, unsigned short length)
 {
-	//akconf->printf("[airkiss_recv %d]", length);
 	if(!air_cfg)
 		return AIRKISS_STATUS_CONTINUE;
 
