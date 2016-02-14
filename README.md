@@ -77,6 +77,7 @@ Sending random to broadcast..
 [akdbg]: http://iot.weixin.qq.com/wiki/doc/wifi/AirKissDebugger.apk
 [airkiss]:http://iot.weixin.qq.com/wiki/doc/wifi/AirKissDoc.pdf
 [smartcfg]:http://processors.wiki.ti.com/index.php/CC3000_Smart_Config
-[airkiss_doc]:http://wenku.baidu.com/view/a5d51c18561252d380eb6eab.html
+[airkiss_doc]:http://wenku.baidu.com/view/0e825981ad02de80d5d8409c
+[airkiss_doc2]:https://www.docdroid.net/UIi8rgt/airkiss-protocol.pdf.html
 [smartcfg_doc]:http://electronics.stackexchange.com/questions/61704/how-does-ti-cc3000-wifi-smart-config-work
 
