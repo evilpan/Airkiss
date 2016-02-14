@@ -76,8 +76,7 @@ static airkiss_config_t *akconf = 0;
 static airkiss_context_t *akcontex = 0;
 static _airkiss_local_cfg *air_cfg = 0;
 
-//crc-8
-
+//crc8
 unsigned char calcrc_1byte(unsigned char abyte)    
 {    
 	unsigned char i,crc_1byte;     
@@ -101,10 +100,10 @@ unsigned char calcrc_1byte(unsigned char abyte)
 }  
 
 
-unsigned char calcrc_bytes(unsigned char *p,unsigned char len)  
+unsigned char calcrc_bytes(unsigned char *p,unsigned char num_of_bytes)  
 {  
 	unsigned char crc=0;  
-	while(len--) 
+	while(num_of_bytes--) 
 	{  
 		crc=calcrc_1byte(crc^*p++);  
 	}  
@@ -212,17 +211,18 @@ static void airkiss_process_magic_code(airkiss_context_t* context,
 	if(!air_cfg)
 		return;
 
-	air_cfg->data.magic_code.record[MAX_MAGIC_CODE_RECORD ] = length - air_cfg->base_len;
+	air_cfg->data.magic_code.record[MAX_MAGIC_CODE_RECORD] = length - air_cfg->base_len;
 
 	airkiss_record_move_ones(air_cfg->data.magic_code.record, MAX_MAGIC_CODE_RECORD);
 
-	if((air_cfg->data.magic_code.record[0]&0xfff0)==0x0000&&
-		(air_cfg->data.magic_code.record[1]&0xfff0)==0x0010&&
-			(air_cfg->data.magic_code.record[2]&0xfff0)==0x0020&&
-			(air_cfg->data.magic_code.record[3]&0xfff0)==0x0030)
+	if(((air_cfg->data.magic_code.record[0]&0x01f0)==0x0000)&&
+		((air_cfg->data.magic_code.record[1]&0x01f0)==0x0010)&&
+			((air_cfg->data.magic_code.record[2]&0x01f0)==0x0020)&&
+			((air_cfg->data.magic_code.record[3]&0x01f0)==0x0030))
 	{
 		air_cfg->total_len = ((air_cfg->data.magic_code.record[0] & 0x000F) << 4) + (air_cfg->data.magic_code.record[1] & 0x000F);
 		air_cfg->ssid_crc = ((air_cfg->data.magic_code.record[2] & 0x000F) << 4) + (air_cfg->data.magic_code.record[3] & 0x000F);
+        //TODO:double check magic code
 		air_cfg->airkiss_state = AIRKISS_STATE_MAGIC_CODE_COMPLETE;
 		resest_airkiss_data();
 		akconf->printf("airkiss_process_magic_code success\n");
@@ -327,7 +327,6 @@ int airkiss_recv(airkiss_context_t* context,
 			break;
 		case AIRKISS_STATE_SRC_LOCKED:
 			airkiss_process_magic_code(context, frame, length);
-			
 			break;
 		case AIRKISS_STATE_MAGIC_CODE_COMPLETE:
 			airkiss_process_prefix_code(context, frame, length);
