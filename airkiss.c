@@ -240,17 +240,17 @@ static void airkiss_process_prefix_code(airkiss_context_t* context,
 
 	airkiss_record_move_ones(air_cfg->data.prefix_code.record, MAX_PREFIX_CODE_RECORD );
 
-	if((air_cfg->data.prefix_code.record[0]&0xfff0)==0x0040&&
-		(air_cfg->data.prefix_code.record[1]&0xfff0)==0x0050&&
-			(air_cfg->data.prefix_code.record[2]&0xfff0)==0x0060&&
-			(air_cfg->data.prefix_code.record[3]&0xfff0)==0x0070)
+	if((air_cfg->data.prefix_code.record[0]&0x01f0)==0x0040&&
+		(air_cfg->data.prefix_code.record[1]&0x01f0)==0x0050&&
+			(air_cfg->data.prefix_code.record[2]&0x01f0)==0x0060&&
+			(air_cfg->data.prefix_code.record[3]&0x01f0)==0x0070)
 	{
 		air_cfg->pswd_len = ((air_cfg->data.prefix_code.record[0] & 0x000F) << 4) + (air_cfg->data.prefix_code.record[1] & 0x000F);
 		if(air_cfg->pswd_len > PASSWORD_MAX_LEN)
 			air_cfg->pswd_len = 0;
-
 		air_cfg->pswd_crc = ((air_cfg->data.prefix_code.record[2] & 0x000F) << 4) + (air_cfg->data.prefix_code.record[3] & 0x000F);
 		air_cfg->airkiss_state = AIRKISS_STATE_PREFIX_CODE_COMPLETE;
+
 		air_cfg->need_seq = ((air_cfg->pswd_len + 1) + 3)/4; //all we need is password and random
 		air_cfg->seq_success_map_cmp = (1 << air_cfg->need_seq) - 1; // EXAMPLE: need_seq = 5; seq_success_map_cmp = 0x1f;
 			
@@ -279,10 +279,10 @@ static void airkiss_process_sequence(airkiss_context_t* context,
 	{
 		tempBuffer[0]=air_cfg->data.seq_code.record[0]&0x7F; 
 		tempBuffer[1]=air_cfg->data.seq_code.record[1]&0x7F;
-		tempBuffer[2]=air_cfg->data.seq_code.record[2]&0xff;
-		tempBuffer[3]=air_cfg->data.seq_code.record[3]&0xff;
-		tempBuffer[4]=air_cfg->data.seq_code.record[4]&0xff;
-		tempBuffer[5]=air_cfg->data.seq_code.record[5]&0xff;
+		tempBuffer[2]=air_cfg->data.seq_code.record[2]&0xFF;
+		tempBuffer[3]=air_cfg->data.seq_code.record[3]&0xFF;
+		tempBuffer[4]=air_cfg->data.seq_code.record[4]&0xFF;
+		tempBuffer[5]=air_cfg->data.seq_code.record[5]&0xFF;
 
 		akconf->printf("seq:%d, %x,%x,%x,%x\n", tempBuffer[1], tempBuffer[2], tempBuffer[3], tempBuffer[4], tempBuffer[5]);
 		if(tempBuffer[0] == (calcrc_bytes(tempBuffer+1,5)&0x7F) )
