@@ -288,9 +288,11 @@ int udp_broadcast(unsigned char random, int port)
     
     printf("Sending random to broadcast..\n");
     int i;
-    for(i=0;i<20;i++)
+    unsigned int usecs = 1000*20;
+    for(i=0;i<50;i++)
     {
         sendto(fd, (unsigned char *)&random, 1, 0, (struct sockaddr*)&addr, sizeof(struct sockaddr));
+        usleep(usecs);
     }
 
     close(fd);
