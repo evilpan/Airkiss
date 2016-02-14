@@ -60,10 +60,13 @@ key:123456789
 length:9
 ssid_crc:d
 random:93
+Sending random to broadcast..
 ```
 
-为了加快Airkiss进度,ssid部分不获取而只取其crc,扫描周围的AP并将crc尽行对比,则可以获取目标的ssid信息.
-上层应用收到wifi帐号密码之后进行连接,根据airkiss协议然后再向10000端口广播random值通知发送端即可完成配置.
+还有一个可以优化的地方是airkiss上层在抓包之前先扫描附近的无线热点并记录其ssid/crc以及信道,从而使得airkiss
+只用在这几个信道切换抓包. 另外为了加快Airkiss进度,ssid部分不从data字段读取而只取其crc,
+上层应用将记录的ssid/crc进行对比,则可以获取目标的ssid信息并连接.连接后根据airkiss协议,
+向10000端口广播random值通知发送端即可完成配置.
 
 > 注:  
 > Linux下抓包需要用到`libnl-3`, `libnl-genl-3` 以及 `libpcap`, 操作网卡需要root权限.  
