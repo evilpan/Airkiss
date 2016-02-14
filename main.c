@@ -17,6 +17,7 @@
 #include <net/if.h>
 #include <signal.h>
 #include <time.h>
+#include <sys/socket.h>
 
 /* nl80211 */
 struct nl80211_state {
@@ -144,10 +145,11 @@ const airkiss_config_t akconf = {
 (airkiss_memcmp_fn)&memcmp, 
 (airkiss_printf_fn)&printf };
 
-airkiss_result_t result;
+airkiss_result_t ak_result;
 
 struct itimerval my_timer;
 int startTimer(struct itimerval *timer, int ms);
+int udp_broadcast(unsigned char random, int port);
 static int channel = 1;
 const char *wifi_if = NULL;
 void switch_channel_callback(void)
@@ -177,10 +179,12 @@ void recv_callback(u_char *args, const struct pcap_pkthdr *header, const u_char 
     else if(ret == AIRKISS_STATUS_COMPLETE)
     {
         printf("Airkiss completed.\n");
-        airkiss_get_result(akcontex, &result);
+        airkiss_get_result(akcontex, &ak_result);
         printf("get result:\nssid:%s\nlength:%d\nkey:%s\nlength:%d\nssid_crc:%x\nrandom:%d\n", 
-			result.ssid, result.ssid_length, result.pwd, result.pwd_length, result.reserved, result.random);
+			ak_result.ssid, ak_result.ssid_length, ak_result.pwd, ak_result.pwd_length, ak_result.reserved, ak_result.random);
 
+        //TODO: scan and connect to wifi
+        udp_broadcast(ak_result.random, 10000);
         pcap_close(handle);
     }
     //printf("[len: %d, airkiss ret: %d]\n", header->len, ret);
@@ -255,4 +259,39 @@ int startTimer(struct itimerval *timer, int ms)
     timer->it_value.tv_usec = usecs;
 
 	setitimer(ITIMER_REAL, timer, NULL);
+}
+
+int udp_broadcast(unsigned char random, int port)
+{
+    int fd;
+    int enabled = 1;
+    int err;
+    struct sockaddr_in addr;
+    
+    addr.sin_family = AF_INET;
+    addr.sin_addr.s_addr = INADDR_BROADCAST;
+    addr.sin_port = htons(port);
+    
+    fd = socket(AF_INET, SOCK_DGRAM, 0);
+    if (fd < 0)
+    {
+    	printf("get socket err:%d", errno);
+    	return 1;
+    } 
+    
+    err = setsockopt(fd, SOL_SOCKET, SO_BROADCAST, (char *) &enabled, sizeof(enabled));
+    if(err == -1)
+    {
+    	close(fd);
+    	return 1;
+    }
+    
+    printf("Sending random to broadcast..\n");
+    int i;
+    for(i=0;i<20;i++)
+    {
+        sendto(fd, (unsigned char *)&random, 1, 0, (struct sockaddr*)&addr, sizeof(struct sockaddr));
+    }
+
+    close(fd);
 }
