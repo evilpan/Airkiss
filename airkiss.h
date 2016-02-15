@@ -45,7 +45,7 @@ typedef struct
     unsigned char pwd_length;        /* wifi密码长度 */
     unsigned char ssid_length;        /* wifi ssid长度 */
     unsigned char random;            /* 随机值，根据AirKiss协议，当wifi连接成功后，需要通过udp向10000端口广播这个随机值，这样AirKiss发送端（微信客户端或者AirKissDebugger）就能知道AirKiss已配置成功 */
-    unsigned char reserved;            /* 保留值 */
+    unsigned char reserved;            /* 保留值,这里用来保存ssid的crc校验值 */
 } airkiss_result_t;
 
 
