@@ -1,52 +1,16 @@
-/*
- * scan_access_points.c: Prints all detected access points with wlan0 using NL80211 (netlink).
- *
- * Only works on network interfaces whose drivers are compatible with Netlink. Test this by running `iw list`.
- *
- * Since only privileged users may submit NL80211_CMD_TRIGGER_SCAN, you'll have to run the compiled program as root.
- *
- * Resources:
- *      http://git.kernel.org/cgit/linux/kernel/git/jberg/iw.git/tree/scan.c
- *      http://stackoverflow.com/questions/21601521/how-to-use-the-libnl-library-to-trigger-nl80211-commands
- *      http://stackoverflow.com/questions/23760780/how-to-send-single-channel-scan-request-to-libnl-and-receive-single-
- *
- * Expected output (as root):
- *      NL80211_CMD_TRIGGER_SCAN sent 36 bytes to the kernel.
- *      Waiting for scan to complete...
- *      Got NL80211_CMD_NEW_SCAN_RESULTS.
- *      Scan is done.
- *      NL80211_CMD_GET_SCAN sent 28 bytes to the kernel.
- *      47:be:34:f0:bb:be, 2457 MHz, NETGEAR16
- *      6b:db:ed:85:ef:42, 2432 MHz, NETGEAR31
- *      d8:06:ef:a7:f9:80, 2412 MHz, ATT912
- *      a7:0d:af:0a:19:08, 2462 MHz, ATT185
- *
- * Expected output (without root):
- *      NL80211_CMD_TRIGGER_SCAN sent 36 bytes to the kernel.
- *      Waiting for scan to complete...
- *      error_handler() called.
- *      WARNING: err has a value of -1.
- *      ERROR: nl_recvmsgs() returned -28 (Operation not permitted).
- *      do_scan_trigger() failed with -28.
- *
- */
 #include "wifi_scan.h"
 #include <errno.h>
 #include <ctype.h>
-
-
 
 struct trigger_results {
     int done;
     int aborted;
 };
 
-
 struct handler_args {  // For family_handler() and nl_get_multicast_id().
     const char *group;
     int id;
 };
-
 
 static int error_handler(struct sockaddr_nl *nla, struct nlmsgerr *err, void *arg) {
     // Callback for errors.
@@ -56,14 +20,12 @@ static int error_handler(struct sockaddr_nl *nla, struct nlmsgerr *err, void *ar
     return NL_STOP;
 }
 
-
 static int finish_handler(struct nl_msg *msg, void *arg) {
     // Callback for NL_CB_FINISH.
     int *ret = arg;
     *ret = 0;
     return NL_SKIP;
 }
-
 
 static int ack_handler(struct nl_msg *msg, void *arg) {
     // Callback for NL_CB_ACK.
