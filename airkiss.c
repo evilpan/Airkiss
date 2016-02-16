@@ -319,7 +319,7 @@ static void airkiss_process_sequence(airkiss_context_t* context,
         }
         else
         {
-            akconf->printf("CRC check error, invalid sequence, drop it.\n");
+            akconf->printf("CRC check error, invalid sequence, Discared it.\n");
         }
     }
 }

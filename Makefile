@@ -4,7 +4,7 @@ TIMER := -lrt
 ELF := a.out
 
 all: $(ELF)
-$(ELF) : main.c airkiss.c
+$(ELF) : main.c airkiss.c wifi_scan.c
 	gcc $^ -o $@ $(LIBNL3) $(LIBPCAP) $(TIMER) -g
 
 clean:

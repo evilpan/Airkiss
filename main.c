@@ -1,4 +1,5 @@
 #include "airkiss.h"
+#include "wifi_scan.h"
 #include <stdint.h>
 #include <stdio.h>
 #include <unistd.h>
@@ -28,31 +29,31 @@ struct nl80211_state {
 
 int ieee80211_channel_to_frequency(int chan, enum nl80211_band band)
 {
-	/* see 802.11 17.3.8.3.2 and Annex J
-	 * there are overlapping channel numbers in 5GHz and 2GHz bands */
-	if (chan <= 0)
-		return 0; /* not supported */
-	switch (band) {
-	case NL80211_BAND_2GHZ:
-		if (chan == 14)
-			return 2484;
-		else if (chan < 14)
-			return 2407 + chan * 5;
-		break;
-	case NL80211_BAND_5GHZ:
-		if (chan >= 182 && chan <= 196)
-			return 4000 + chan * 5;
-		else
-			return 5000 + chan * 5;
-		break;
-	case NL80211_BAND_60GHZ:
-		if (chan < 5)
-			return 56160 + chan * 2160;
-		break;
-	default:
-		;
-	}
-	return 0; /* not supported */
+    /* see 802.11 17.3.8.3.2 and Annex J
+     * there are overlapping channel numbers in 5GHz and 2GHz bands */
+    if (chan <= 0)
+        return 0; /* not supported */
+    switch (band) {
+    case NL80211_BAND_2GHZ:
+        if (chan == 14)
+            return 2484;
+        else if (chan < 14)
+            return 2407 + chan * 5;
+        break;
+    case NL80211_BAND_5GHZ:
+        if (chan >= 182 && chan <= 196)
+            return 4000 + chan * 5;
+        else
+            return 5000 + chan * 5;
+        break;
+    case NL80211_BAND_60GHZ:
+        if (chan < 5)
+            return 56160 + chan * 2160;
+        break;
+    default:
+        ;
+    }
+    return 0; /* not supported */
 }
 
 static int linux_nl80211_init(struct nl80211_state *state)
@@ -180,8 +181,8 @@ void recv_callback(u_char *args, const struct pcap_pkthdr *header, const u_char 
     {
         printf("Airkiss completed.\n");
         airkiss_get_result(akcontex, &ak_result);
-        printf("get result:\nssid:%s\nlength:%d\nkey:%s\nlength:%d\nssid_crc:%x\nrandom:%d\n", 
-			ak_result.ssid, ak_result.ssid_length, ak_result.pwd, ak_result.pwd_length, ak_result.reserved, ak_result.random);
+        printf("get result:\nssid_crc:%x\nkey:%s\nkey_len:%d\nrandom:%d\n", 
+            ak_result.reserved, ak_result.pwd, ak_result.pwd_length, ak_result.random);
 
         //TODO: scan and connect to wifi
         udp_broadcast(ak_result.random, 10000);
@@ -198,6 +199,49 @@ void recv_callback(u_char *args, const struct pcap_pkthdr *header, const u_char 
     //}
     //printf("\n");
 }
+static int scan_callback(struct nl_msg *msg, void *arg) {
+    // Called by the kernel with a dump of the successful scan's data. Called for each SSID.
+    struct genlmsghdr *gnlh = nlmsg_data(nlmsg_hdr(msg));
+    char mac_addr[20];
+    struct nlattr *tb[NL80211_ATTR_MAX + 1];
+    struct nlattr *bss[NL80211_BSS_MAX + 1];
+    static struct nla_policy bss_policy[NL80211_BSS_MAX + 1] = {
+        [NL80211_BSS_TSF] = { .type = NLA_U64 },
+        [NL80211_BSS_FREQUENCY] = { .type = NLA_U32 },
+        [NL80211_BSS_BSSID] = { },
+        [NL80211_BSS_BEACON_INTERVAL] = { .type = NLA_U16 },
+        [NL80211_BSS_CAPABILITY] = { .type = NLA_U16 },
+        [NL80211_BSS_INFORMATION_ELEMENTS] = { },
+        [NL80211_BSS_SIGNAL_MBM] = { .type = NLA_U32 },
+        [NL80211_BSS_SIGNAL_UNSPEC] = { .type = NLA_U8 },
+        [NL80211_BSS_STATUS] = { .type = NLA_U32 },
+        [NL80211_BSS_SEEN_MS_AGO] = { .type = NLA_U32 },
+        [NL80211_BSS_BEACON_IES] = { },
+    };
+
+    // Parse and error check.
+    nla_parse(tb, NL80211_ATTR_MAX, genlmsg_attrdata(gnlh, 0), genlmsg_attrlen(gnlh, 0), NULL);
+    if (!tb[NL80211_ATTR_BSS]) {
+        printf("bss info missing!\n");
+        return NL_SKIP;
+    }
+    if (nla_parse_nested(bss, NL80211_BSS_MAX, tb[NL80211_ATTR_BSS], bss_policy)) {
+        printf("failed to parse nested attributes!\n");
+        return NL_SKIP;
+    }
+    if (!bss[NL80211_BSS_BSSID]) return NL_SKIP;
+    if (!bss[NL80211_BSS_INFORMATION_ELEMENTS]) return NL_SKIP;
+
+    // Start printing.
+    mac_addr_n2a(mac_addr, nla_data(bss[NL80211_BSS_BSSID]));
+    printf("%s, ", mac_addr);
+    printf("%d MHz, ", nla_get_u32(bss[NL80211_BSS_FREQUENCY]));
+    print_ssid(nla_data(bss[NL80211_BSS_INFORMATION_ELEMENTS]), nla_len(bss[NL80211_BSS_INFORMATION_ELEMENTS]));
+    printf("\n");
+
+    return NL_SKIP;
+}
+
 int main(int argc, char *argv[])
 {
     if(argc!=2)
@@ -216,6 +260,7 @@ int main(int argc, char *argv[])
         printf("Error: %s\n", errbuf);
         return -1;
     }
+    wifi_scan(dev, &scan_callback);
 
     handle = pcap_open_live(dev, BUFSIZ, 1, 5, errbuf); //5ms recv timeout
     if(NULL==handle)
@@ -258,7 +303,7 @@ int startTimer(struct itimerval *timer, int ms)
     timer->it_value.tv_sec = secs;
     timer->it_value.tv_usec = usecs;
 
-	setitimer(ITIMER_REAL, timer, NULL);
+    setitimer(ITIMER_REAL, timer, NULL);
 }
 
 int udp_broadcast(unsigned char random, int port)
@@ -275,15 +320,15 @@ int udp_broadcast(unsigned char random, int port)
     fd = socket(AF_INET, SOCK_DGRAM, 0);
     if (fd < 0)
     {
-    	printf("get socket err:%d", errno);
-    	return 1;
+        printf("get socket err:%d", errno);
+        return 1;
     } 
     
     err = setsockopt(fd, SOL_SOCKET, SO_BROADCAST, (char *) &enabled, sizeof(enabled));
     if(err == -1)
     {
-    	close(fd);
-    	return 1;
+        close(fd);
+        return 1;
     }
     
     printf("Sending random to broadcast..\n");
