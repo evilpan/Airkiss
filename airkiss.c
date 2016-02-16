@@ -71,7 +71,7 @@ typedef struct
     union airkiss_data data;
 }_airkiss_local_cfg;
 
-const char airkiss_vers[] = "V1.0";
+const char airkiss_vers[] = "V1.1";
 
 static airkiss_config_t *akconf = 0;
 static airkiss_context_t *akcontex = 0;

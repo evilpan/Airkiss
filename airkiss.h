@@ -86,6 +86,7 @@ int airkiss_set_key(airkiss_context_t* context, const unsigned char* key, unsign
 const char* airkiss_version(void);
 
 
+unsigned char calcrc_bytes(unsigned char *p,unsigned char num_of_bytes);
 
 /*
  * 初始化AirKiss库

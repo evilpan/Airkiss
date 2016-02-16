@@ -27,6 +27,22 @@ struct nl80211_state {
     struct genl_family *nl80211;
 } state;
 
+/**
+ * Return the channel from the frequency (in Mhz)
+ */
+int getChannelFromFrequency(int frequency)
+{
+    if (frequency >= 2412 && frequency <= 2472)
+        return (frequency - 2407) / 5;
+    else if (frequency == 2484)
+        return 14;
+
+    else if (frequency >= 4920 && frequency <= 6100)
+        return (frequency - 5000) / 5;
+    else
+        return -1;
+}
+
 int ieee80211_channel_to_frequency(int chan, enum nl80211_band band)
 {
     /* see 802.11 17.3.8.3.2 and Annex J
@@ -199,10 +215,13 @@ void recv_callback(u_char *args, const struct pcap_pkthdr *header, const u_char 
     //}
     //printf("\n");
 }
-static int scan_callback(struct nl_msg *msg, void *arg) {
-    // Called by the kernel with a dump of the successful scan's data. Called for each SSID.
+
+// Called by the kernel with a dump of the successful scan's data. Called for each SSID.
+static int scan_callback(struct nl_msg *msg, void *arg)
+{
     struct genlmsghdr *gnlh = nlmsg_data(nlmsg_hdr(msg));
     char mac_addr[20];
+    char ssid[30] = {0};
     struct nlattr *tb[NL80211_ATTR_MAX + 1];
     struct nlattr *bss[NL80211_BSS_MAX + 1];
     static struct nla_policy bss_policy[NL80211_BSS_MAX + 1] = {
@@ -234,9 +253,11 @@ static int scan_callback(struct nl_msg *msg, void *arg) {
 
     // Start printing.
     mac_addr_n2a(mac_addr, nla_data(bss[NL80211_BSS_BSSID]));
-    printf("%s, ", mac_addr);
-    printf("%d MHz, ", nla_get_u32(bss[NL80211_BSS_FREQUENCY]));
-    print_ssid(nla_data(bss[NL80211_BSS_INFORMATION_ELEMENTS]), nla_len(bss[NL80211_BSS_INFORMATION_ELEMENTS]));
+    get_ssid(nla_data(bss[NL80211_BSS_INFORMATION_ELEMENTS]), nla_len(bss[NL80211_BSS_INFORMATION_ELEMENTS]), ssid);
+    printf("Mac Address:[%s], ", mac_addr);
+    //printf("Frequency:[%d MHz], ", nla_get_u32(bss[NL80211_BSS_FREQUENCY]));
+    printf("Channel:[%2d], ", getChannelFromFrequency(nla_get_u32(bss[NL80211_BSS_FREQUENCY])));
+    printf("SSID_CRC:[%2x], SSID:[%s]", calcrc_bytes((unsigned char *)ssid, strlen(ssid)), ssid);
     printf("\n");
 
     return NL_SKIP;

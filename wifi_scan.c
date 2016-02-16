@@ -193,6 +193,35 @@ void print_ssid(unsigned char *ie, int ielen) {
     }
 }
 
+void get_ssid(unsigned char *ie, int ielen, char *ssid)
+{
+    uint8_t len;
+    uint8_t *data;
+    int i;
+
+    while (ielen >= 2 && ielen >= ie[1]) {
+        if (ie[0] == 0 && ie[1] >= 0 && ie[1] <= 32) {
+            len = ie[1];
+            data = ie + 2;
+            for (i = 0; i < len; i++) {
+                if ( data[i] != ' ' && data[i] != '\\') 
+                {
+                    sprintf(ssid+i, "%c", data[i]);
+                }
+                else if (data[i] == ' ' && (i != 0 && i != len -1))
+                {
+                    sprintf(ssid+i, " ");
+                }
+                else
+                    sprintf(ssid+i, "\\x%.2x", data[i]);
+            }
+            break;
+        }
+        ielen -= ie[1] + 2;
+        ie += ie[1] + 2;
+    }
+}
+
 
 static int callback_trigger(struct nl_msg *msg, void *arg) {
     // Called by the kernel when the scan is done or has been aborted.
