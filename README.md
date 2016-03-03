@@ -50,7 +50,7 @@ Mac Address:[d8:15:0d:1f:f0:cc], Channel:[11], SSID_CRC:[e9], SSID:[nanmu]
 Mac Address:[82:89:17:9f:1f:bf], Channel:[ 1], SSID_CRC:[79], SSID:[nanbo2f]
 Mac Address:[08:10:79:16:fa:68], Channel:[ 6], SSID_CRC:[ 0], SSID:[]
 air_cfg size:96
-Airkiss verson: V1.0
+Airkiss verson: V1.1
 scan all channels
 airkiss_recv_discover success
 base len:42
@@ -100,7 +100,7 @@ Sending random to broadcast..
 > 注:  
 > Linux下抓包需要用到`libnl-3`, `libnl-genl-3` 以及 `libpcap`, 操作网卡需要root权限.  
 ```
-sudo apt get install libnl-3-dev libnl-genl-3-dev libpcap-dev
+sudo apt-get install libnl-3-dev libnl-genl-3-dev libpcap-dev
 ```
 > 由于不同抓包策略会导致抓到的包格式各不相同,比如有的是带802.11头的数据帧(亦即微信官方要求的格式),  
 > 有的是更底层的比如带Radiotap头的数据,更有的是不带头的纯数据,为了彼此兼容,代码里仅仅用到长度来编解码.
