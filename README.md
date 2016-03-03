@@ -99,6 +99,9 @@ Sending random to broadcast..
 
 > 注:  
 > Linux下抓包需要用到`libnl-3`, `libnl-genl-3` 以及 `libpcap`, 操作网卡需要root权限.  
+```
+sudo apt get install libnl-3-dev libnl-genl-3-dev libpcap-dev
+```
 > 由于不同抓包策略会导致抓到的包格式各不相同,比如有的是带802.11头的数据帧(亦即微信官方要求的格式),  
 > 有的是更底层的比如带Radiotap头的数据,更有的是不带头的纯数据,为了彼此兼容,代码里仅仅用到长度来编解码.
 
