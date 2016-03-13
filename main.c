@@ -298,12 +298,12 @@ int main(int argc, char *argv[])
         printf("Airkiss init failed!!\n");
         exit(1);
     }
-    printf("Airkiss verson: %s\n", airkiss_version());
+    printf("Airkiss version: %s\n", airkiss_version());
 
     /* 80211 */
     linux_nl80211_init(&state);
 
-    /* Setup timer */
+    /* Setup channel switch timer */
     startTimer(&my_timer, 100);   
     signal(SIGALRM,(__sighandler_t)&switch_channel_callback);
     
