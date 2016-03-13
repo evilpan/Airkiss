@@ -29,9 +29,9 @@
 
     $ make clean
     $ make
-    $ sudo ./a.out wlan0
+    $ sudo ./airkiss wlan0
 
-开始运行后可以用微信或者airkiss\_debugger发送wifi密码进行测试, 如我发送密码0123456789,则有如下输出:
+开始运行后可以用微信或者airkiss_debugger发送wifi密码进行测试, 如我发送密码123456789,则有如下输出:
 
 ```
 NL80211_CMD_TRIGGER_SCAN sent 36 bytes to the kernel.
@@ -39,56 +39,56 @@ Waiting for scan to complete...
 Got NL80211_CMD_NEW_SCAN_RESULTS.
 Scan is done.
 NL80211_CMD_GET_SCAN sent 28 bytes to the kernel.
-Mac Address:[14:75:90:1b:06:90], Channel:[ 1], SSID_CRC:[89], SSID:[TP-LINK_0690]
-Mac Address:[fc:d7:33:87:a3:a6], Channel:[11], SSID_CRC:[ d], SSID:[LINK001]
-Mac Address:[08:10:79:16:fa:69], Channel:[ 6], SSID_CRC:[9c], SSID:[orans-sh_1]
-Mac Address:[08:10:79:16:f6:c9], Channel:[13], SSID_CRC:[7e], SSID:[orans-sh_2]
-Mac Address:[00:23:cd:a0:16:cc], Channel:[11], SSID_CRC:[25], SSID:[WDH]
-Mac Address:[1c:fa:68:aa:c2:b8], Channel:[ 3], SSID_CRC:[b5], SSID:[shzy service]
-Mac Address:[d2:15:0d:1f:f0:cc], Channel:[11], SSID_CRC:[10], SSID:[Guest_luyisi]
-Mac Address:[d8:15:0d:1f:f0:cc], Channel:[11], SSID_CRC:[e9], SSID:[nanmu]
-Mac Address:[82:89:17:9f:1f:bf], Channel:[ 1], SSID_CRC:[79], SSID:[nanbo2f]
-Mac Address:[08:10:79:16:fa:68], Channel:[ 6], SSID_CRC:[ 0], SSID:[]
+Mac Address:[80:89:17:48:ae:96], Channel:[ 1], SSID_CRC:[78], SSID:[TP-LINK_AE96]
+Mac Address:[f4:6a:92:26:96:fc], Channel:[ 2], SSID_CRC:[cc], SSID:[zhou'zhou]
+Mac Address:[a4:56:02:73:bb:03], Channel:[ 1], SSID_CRC:[40], SSID:[360WiFi-73BB03]
+Mac Address:[98:bc:57:46:97:73], Channel:[ 1], SSID_CRC:[ 2], SSID:[ChinaNGB-YDw1ap]
+Mac Address:[f8:d1:11:f1:3f:d6], Channel:[ 1], SSID_CRC:[e3], SSID:[manson]
+Mac Address:[80:89:17:15:9d:a8], Channel:[ 1], SSID_CRC:[69], SSID:[chinanet]
+Mac Address:[30:fc:68:05:35:3a], Channel:[ 1], SSID_CRC:[50], SSID:[maomao]
+Mac Address:[24:69:68:01:78:80], Channel:[ 1], SSID_CRC:[3f], SSID:[TP-LINK_7880]
+Mac Address:[0c:82:68:95:ff:24], Channel:[ 1], SSID_CRC:[2a], SSID:[TP-LINK_95FF24]
+Mac Address:[88:25:93:14:65:ca], Channel:[ 6], SSID_CRC:[b2], SSID:[365/64/602]
+Mac Address:[fc:d7:33:32:41:5a], Channel:[ 1], SSID_CRC:[89], SSID:[zhao]
+Mac Address:[50:bd:5f:84:6d:d9], Channel:[ 1], SSID_CRC:[e3], SSID:[365/63/602]
+Mac Address:[bc:d1:77:3a:06:64], Channel:[13], SSID_CRC:[e7], SSID:[MERCURY_802]
 air_cfg size:96
-Airkiss verson: V1.1
+Airkiss version: V1.2
+exec cmd: iw wlan1 set channel 2
+exec cmd: iw wlan1 set channel 6
+exec cmd: iw wlan1 set channel 13
 scan all channels
+exec cmd: iw wlan1 set channel 1
+exec cmd: iw wlan1 set channel 2
 airkiss_recv_discover success
-base len:42
-Lock channel in 4
+base len:76
+Lock channel in 2
 airkiss_process_magic_code success
-total_len:18, ssid crc:d
+total_len:22, ssid crc:78
 airkiss_process_prefix_code success
-pswd_len:10, pswd_lencrc:7e, need seq:3, seq map:7
-seq:1, d8,d8,d8,d8
+pswd_len:9, pswd_lencrc:9c, need seq:3, seq map:7
+seq:0, 31,32,33,34
+now seq map:1
+seq:1, 35,36,37,38
+now seq map:3
+seq:3, 2d,4c,49,4e
+now seq map:3
+seq:1, 35,36,37,38
+now seq map:3
+seq:0, 31,32,34,35
 CRC check error, invalid sequence, Discared it.
-seq:2, 38,39,f7,4c
-now seq map:4
-seq:3, d8,d8,d8,d8
-CRC check error, invalid sequence, Discared it.
-seq:4, 30,31,d8,d8
-CRC check error, invalid sequence, Discared it.
-seq:0, 30,31,32,33
-now seq map:5
-seq:3, 49,4e,4b,30
-now seq map:5
-seq:0, 30,31,32,33
-now seq map:5
-seq:0, 30,31,32,33
-now seq map:5
-seq:2, 38,39,f7,4c
-now seq map:5
-seq:3, 49,4e,4b,30
-now seq map:5
-seq:0, 30,31,32,33
-now seq map:5
-seq:1, 34,35,36,37
+seq:3, 2d,4c,49,4e
+now seq map:3
+seq:0, 31,32,33,34
+now seq map:3
+seq:2, 39,b7,54,50
 now seq map:7
 Airkiss completed.
 get result:
-ssid_crc:d
-key:0123456789
-key_len:10
-random:247
+reserved:78
+key:123456789
+key_len:9
+random:183
 Sending random to broadcast..
 ```
 
@@ -103,7 +103,9 @@ Sending random to broadcast..
 sudo apt-get install libnl-3-dev libnl-genl-3-dev libpcap-dev
 ```
 > 由于不同抓包策略会导致抓到的包格式各不相同,比如有的是带802.11头的数据帧(亦即微信官方要求的格式),  
-> 有的是更底层的比如带Radiotap头的数据,更有的是不带头的纯数据,为了彼此兼容,代码里仅仅用到长度来编解码.
+> 有的是更底层的比如带Radiotap头的数据,更有的是不带头的纯数据,为了彼此兼容,理论上可以仅用长度来编解码.
+> 但实践中发现,如果不对数据帧进行筛选,周围无线信号过多时会造成很大干扰,从而导致无法在指定时间内完成,  
+> 因此代码里规定数据为80211数据帧,并对其24位header进行一定程度的过滤.
 
 ## Known issue
 

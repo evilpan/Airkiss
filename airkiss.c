@@ -1,6 +1,7 @@
 #include "airkiss.h"
 #include <stdio.h>
 #include <string.h>
+#include <stdlib.h>
 
 #define PASSWORD_MAX_LEN    32
 #define ESSID_MAX_LEN        32
@@ -71,7 +72,7 @@ typedef struct
     union airkiss_data data;
 }_airkiss_local_cfg;
 
-const char airkiss_vers[] = "V1.1";
+const char airkiss_vers[] = "V1.2";
 
 static airkiss_config_t *akconf = 0;
 static airkiss_context_t *akcontex = 0;
@@ -116,6 +117,35 @@ const char* airkiss_version(void)
     return airkiss_vers;
 }
 
+// packet filter
+// return 0 is valid
+int airkiss_filter(const unsigned char *frame, int size)
+{
+    // after discover
+    if(size < 24)
+        return 1;
+
+    int i;
+    unsigned char ch;
+    for(i=0; i<24; i++)
+    {
+        ch = *((unsigned char*)frame + i);
+        akcontex->dummy[i] = ch;
+    }
+    //Address 1
+    for(i=4; i<10; i++)
+        if(akcontex->dummy[i]!=akcontex->dummyap[i])
+            return 1;
+    //Address 2
+    for(i=10; i<16; i++)
+        if(akcontex->dummy[i]!=akcontex->dummyap[i])
+            return 1;
+    //Address 3
+    for(i=16; i<22; i++)
+        if(akcontex->dummy[i]!=akcontex->dummyap[i])
+            return 1;
+    return 0;
+}
 
 static void airkiss_record_move_ones(void *base_addr, int record_num)
 {
@@ -151,7 +181,7 @@ int airkiss_init(airkiss_context_t* context,
 
     akcontex = context;
     akconf = (airkiss_config_t*)config;
-    air_cfg = (_airkiss_local_cfg *)akcontex;
+    air_cfg = (_airkiss_local_cfg *)malloc(sizeof(_airkiss_local_cfg));
 
     akconf->memset(air_cfg , 0, sizeof(_airkiss_local_cfg));
     air_cfg->airkiss_state = AIRKISS_STATE_IDLE;
@@ -164,6 +194,8 @@ static void airkiss_deinit()
 {
     akconf = 0;
     akcontex = 0;
+    if(air_cfg != NULL)
+        free(air_cfg);
     air_cfg = 0;
 }
 
@@ -178,9 +210,6 @@ static void airkiss_recv_discover(const void* frame, unsigned short length)
 {
     int success = 0;
     if(!air_cfg)
-        return;
-
-    if(length > 100)
         return;
 
     air_cfg->data.guide_code.length_record[MAX_GUIDE_RECORD] = length;
@@ -202,6 +231,15 @@ static void airkiss_recv_discover(const void* frame, unsigned short length)
         resest_airkiss_data();
         akconf->printf("airkiss_recv_discover success\n");
         akconf->printf("base len:%d\n", air_cfg->base_len);
+
+        int i;
+        unsigned char ch;
+        for(i=0; i<24; i++)
+        {
+            ch = *((unsigned char*)frame + i);
+            akcontex->dummyap[i] = ch;
+            //printf("0x%02x ", akcontex->dummyap[i]);
+        }
     }
 }
 
@@ -275,7 +313,6 @@ static void airkiss_process_sequence(airkiss_context_t* context,
                             const void* frame, unsigned short length)
 {
     unsigned char tempBuffer[6];
-    
     if(!air_cfg)
         return;
     
@@ -331,6 +368,10 @@ int airkiss_recv(airkiss_context_t* context,
     if(!air_cfg)
         return -1;
 
+    if(air_cfg->airkiss_state != AIRKISS_STATE_IDLE)
+        if(airkiss_filter(frame, length)!=0)
+            return AIRKISS_STATUS_CONTINUE;
+
     switch(air_cfg->airkiss_state)
     {
         case AIRKISS_STATE_IDLE:
@@ -353,7 +394,6 @@ int airkiss_recv(airkiss_context_t* context,
             air_cfg->airkiss_state = AIRKISS_STATE_IDLE;
             break;
     }
-
     return AIRKISS_STATUS_CONTINUE;
 }
 
@@ -370,6 +410,7 @@ int airkiss_get_result(airkiss_context_t* context,
 }
 int airkiss_change_channel(airkiss_context_t* context)
 {
+    memset(context, 0, sizeof(airkiss_context_t));
     resest_airkiss_data();
     return 0;
 }

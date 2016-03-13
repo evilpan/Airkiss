@@ -1,12 +1,15 @@
 #include "airkiss.h"
+#include "osdep.h"
+#include "common.h"
 #include "wifi_scan.h"
+#include <pthread.h>
+
 #include <stdint.h>
 #include <stdio.h>
 #include <unistd.h>
 #include <string.h>
 #include <errno.h>
 
-#include <linux/nl80211.h>
 #include <linux/genetlink.h>
 #include <netlink/genl/genl.h>
 #include <netlink/genl/family.h>
@@ -20,140 +23,9 @@
 #include <time.h>
 #include <sys/socket.h>
 
-/* nl80211 */
-struct nl80211_state {
-    struct nl_sock *nl_sock;
-    struct nl_cache *nl_cache;
-    struct genl_family *nl80211;
-} state;
 
-/**
- * Return the channel from the frequency (in Mhz)
- */
-int getChannelFromFrequency(int frequency)
-{
-    if (frequency >= 2412 && frequency <= 2472)
-        return (frequency - 2407) / 5;
-    else if (frequency == 2484)
-        return 14;
-
-    else if (frequency >= 4920 && frequency <= 6100)
-        return (frequency - 5000) / 5;
-    else
-        return -1;
-}
-
-int ieee80211_channel_to_frequency(int chan, enum nl80211_band band)
-{
-    /* see 802.11 17.3.8.3.2 and Annex J
-     * there are overlapping channel numbers in 5GHz and 2GHz bands */
-    if (chan <= 0)
-        return 0; /* not supported */
-    switch (band) {
-    case NL80211_BAND_2GHZ:
-        if (chan == 14)
-            return 2484;
-        else if (chan < 14)
-            return 2407 + chan * 5;
-        break;
-    case NL80211_BAND_5GHZ:
-        if (chan >= 182 && chan <= 196)
-            return 4000 + chan * 5;
-        else
-            return 5000 + chan * 5;
-        break;
-    case NL80211_BAND_60GHZ:
-        if (chan < 5)
-            return 56160 + chan * 2160;
-        break;
-    default:
-        ;
-    }
-    return 0; /* not supported */
-}
-
-static int linux_nl80211_init(struct nl80211_state *state)
-{
-    int err;
-
-    state->nl_sock = nl_socket_alloc();
-
-    if (!state->nl_sock) {
-        fprintf(stderr, "Failed to allocate netlink socket.\n");
-        return -ENOMEM;
-    }
-
-    if (genl_connect(state->nl_sock)) {
-        fprintf(stderr, "Failed to connect to generic netlink.\n");
-        err = -ENOLINK;
-        goto out_handle_destroy;
-    }
-
-    if (genl_ctrl_alloc_cache(state->nl_sock, &state->nl_cache)) {
-        fprintf(stderr, "Failed to allocate generic netlink cache.\n");
-        err = -ENOMEM;
-        goto out_handle_destroy;
-    }
-
-    state->nl80211 = genl_ctrl_search_by_name(state->nl_cache, "nl80211");
-    if (!state->nl80211) {
-        fprintf(stderr, "nl80211 not found.\n");
-        err = -ENOENT;
-        goto out_cache_free;
-    }
-
-    return 0;
-
- out_cache_free:
-    nl_cache_free(state->nl_cache);
- out_handle_destroy:
-    nl_socket_free(state->nl_sock);
-    return err;
-}
-
-static void nl80211_cleanup(struct nl80211_state *state)
-{
-    genl_family_put(state->nl80211);
-    nl_cache_free(state->nl_cache);
-    nl_socket_free(state->nl_sock);
-}
-static int linux_set_channel_nl80211(const char *if_name, int channel)
-{
-    unsigned int devid;
-    struct nl_msg *msg;
-    unsigned int freq;
-    unsigned int htval = NL80211_CHAN_NO_HT;
-    msg=nlmsg_alloc();
-    if (!msg) {
-        fprintf(stderr, "failed to allocate netlink message\n");
-        return 2;
-    }
-
-    devid=if_nametoindex(if_name);
-
-    enum nl80211_band band;
-    band = channel <= 14 ? NL80211_BAND_2GHZ : NL80211_BAND_5GHZ;
-    freq=ieee80211_channel_to_frequency(channel, band);
-
-    genlmsg_put(msg, 0, 0, genl_family_get_id(state.nl80211), 0,
-            0, NL80211_CMD_SET_WIPHY, 0);
-
-    NLA_PUT_U32(msg, NL80211_ATTR_IFINDEX, devid);
-    NLA_PUT_U32(msg, NL80211_ATTR_WIPHY_FREQ, freq);
-    NLA_PUT_U32(msg, NL80211_ATTR_WIPHY_CHANNEL_TYPE, htval);
-
-    nl_send_auto_complete(state.nl_sock,msg);
-    nlmsg_free(msg);
-
-    return 0;
-
- nla_put_failure:
-    return -ENOBUFS;
-}
-
-
-
-pcap_t *handle;                         /* Pcap session handle */
+#define BUF_SIZE	1024
+#define MAX_CHANNEL 14
 
 static airkiss_context_t *akcontex = NULL;
 const airkiss_config_t akconf = { 
@@ -167,45 +39,60 @@ airkiss_result_t ak_result;
 struct itimerval my_timer;
 int startTimer(struct itimerval *timer, int ms);
 int udp_broadcast(unsigned char random, int port);
-static int channel = 1;
-const char *wifi_if = NULL;
+char *wifi_if = NULL;
+struct wif *wi = NULL;
+int channels[MAX_CHANNEL] = {0};
+int channel_index = 0;
+int channel_nums = 0;
+pthread_mutex_t lock;
+
 void switch_channel_callback(void)
 {
+    pthread_mutex_lock(&lock);
     //printf("Current channel is: %d\n", channel);
-    linux_set_channel_nl80211(wifi_if, channel++);
-    if(channel > 14)
+    channel_index++;
+    if(channel_index > channel_nums - 1)
     {
-        channel = 1;
+        channel_index = 0;
         printf("scan all channels\n");
     }
+	int ret = wi->wi_set_channel(wi, channels[channel_index]);
+	if (ret) {
+		printf("cannot set channel to %d\n", channels[channel_index]);
+	}
+
+    airkiss_change_channel(akcontex);
+    pthread_mutex_unlock(&lock);
 }
 
-void recv_callback(u_char *args, const struct pcap_pkthdr *header, const u_char *packet)
+int process_airkiss(const unsigned char *packet, int size)
 {
+    pthread_mutex_lock(&lock);
     int ret;
-    ret = airkiss_recv(akcontex, (void *)packet, header->len);
+    ret = airkiss_recv(akcontex, (void *)packet, size);
     if(ret==AIRKISS_STATUS_CONTINUE)
     {
-        return;
+        ;//
     }
     else if(ret == AIRKISS_STATUS_CHANNEL_LOCKED)
     {
         startTimer(&my_timer, 0);
-        printf("Lock channel in %d\n", channel);
+        printf("Lock channel in %d\n", channels[channel_index]);
     }
     else if(ret == AIRKISS_STATUS_COMPLETE)
     {
         printf("Airkiss completed.\n");
         airkiss_get_result(akcontex, &ak_result);
-        printf("get result:\nssid_crc:%x\nkey:%s\nkey_len:%d\nrandom:%d\n", 
+        printf("get result:\nreserved:%x\nkey:%s\nkey_len:%d\nrandom:%d\n", 
             ak_result.reserved, ak_result.pwd, ak_result.pwd_length, ak_result.random);
 
         //TODO: scan and connect to wifi
         udp_broadcast(ak_result.random, 10000);
-        pcap_close(handle);
     }
-    //printf("[len: %d, airkiss ret: %d]\n", header->len, ret);
-    ////print  header
+    pthread_mutex_unlock(&lock);
+
+    //print  header
+    //printf("[len: %d, airkiss ret: %d]\n", size, ret);
     //int i;
     //unsigned char ch;
     //for(i=0; i<24; i++)
@@ -214,8 +101,20 @@ void recv_callback(u_char *args, const struct pcap_pkthdr *header, const u_char 
     //    printf("0x%02x ", ch);
     //}
     //printf("\n");
+    return ret;
 }
 
+void add_channel(int chan) {
+    int i;
+    for(i=0; i<channel_nums; i++) {
+        if(channels[i]==chan)
+            break;
+    }
+    if(i==channel_nums) {
+        channel_nums += 1;
+        channels[i] = chan;
+    }
+}
 // Called by the kernel with a dump of the successful scan's data. Called for each SSID.
 static int scan_callback(struct nl_msg *msg, void *arg)
 {
@@ -256,7 +155,9 @@ static int scan_callback(struct nl_msg *msg, void *arg)
     get_ssid(nla_data(bss[NL80211_BSS_INFORMATION_ELEMENTS]), nla_len(bss[NL80211_BSS_INFORMATION_ELEMENTS]), ssid);
     printf("Mac Address:[%s], ", mac_addr);
     //printf("Frequency:[%d MHz], ", nla_get_u32(bss[NL80211_BSS_FREQUENCY]));
-    printf("Channel:[%2d], ", getChannelFromFrequency(nla_get_u32(bss[NL80211_BSS_FREQUENCY])));
+    int _channel = getChannelFromFrequency(nla_get_u32(bss[NL80211_BSS_FREQUENCY]));
+    add_channel(_channel);
+    printf("Channel:[%2d], ", _channel);
     printf("SSID_CRC:[%2x], SSID:[%s]", calcrc_bytes((unsigned char *)ssid, strlen(ssid)), ssid);
     printf("\n");
 
@@ -271,6 +172,11 @@ int main(int argc, char *argv[])
         return -1;
     }
     wifi_if = argv[1];
+	wi = wi_open(wifi_if);
+	if (!wi) {
+		printf("cannot init interface %s\n", wifi_if);
+		return 1;
+	}
 
     char *dev;
     char errbuf[PCAP_ERRBUF_SIZE];
@@ -283,12 +189,6 @@ int main(int argc, char *argv[])
     }
     wifi_scan(dev, &scan_callback);
 
-    handle = pcap_open_live(dev, BUFSIZ, 1, 5, errbuf); //5ms recv timeout
-    if(NULL==handle)
-    {
-        printf("Error: %s\n", errbuf);
-        return -1;
-    }
     /* airkiss setup */
     int result;
     akcontex = (airkiss_context_t *)malloc(sizeof(airkiss_context_t));
@@ -299,17 +199,30 @@ int main(int argc, char *argv[])
         exit(1);
     }
     printf("Airkiss version: %s\n", airkiss_version());
-
-    /* 80211 */
-    linux_nl80211_init(&state);
+    if(pthread_mutex_init(&lock, NULL) != 0)
+    {
+        printf("mutex init failed\n");
+        return 1;
+    }
 
     /* Setup channel switch timer */
-    startTimer(&my_timer, 100);   
+    startTimer(&my_timer, 1000);   
     signal(SIGALRM,(__sighandler_t)&switch_channel_callback);
     
-    pcap_loop(handle, -1, recv_callback, NULL);
-    nl80211_cleanup(&state);
+   
+    int read_size;
+	unsigned char buf[BUF_SIZE] = {0};
+	while (1) {
+		read_size = wi->wi_read(wi, buf, BUF_SIZE, NULL);
+		if (read_size < 0) {
 
+			printf("recv failed, ret %d\n", read_size);
+			break;
+		}
+        if(AIRKISS_STATUS_COMPLETE==process_airkiss(buf, read_size))
+            break;
+	}
+    pthread_mutex_destroy(&lock);
     return 0;
 }
 
@@ -325,6 +238,7 @@ int startTimer(struct itimerval *timer, int ms)
     timer->it_value.tv_usec = usecs;
 
     setitimer(ITIMER_REAL, timer, NULL);
+    return 0;
 }
 
 int udp_broadcast(unsigned char random, int port)
