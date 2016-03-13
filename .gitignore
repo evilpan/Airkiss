@@ -34,3 +34,5 @@
 # Wrap files
 *.swp
 *.log
+#exe
+airkiss

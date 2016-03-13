@@ -29,9 +29,10 @@
 
     $ make clean
     $ make
-    $ sudo ./airkiss wlan0
+    $ sudo ./airkiss wlan1
 
-开始运行后可以用微信或者airkiss_debugger发送wifi密码进行测试, 如我发送密码123456789,则有如下输出:
+其中wlan1是所选择的无线网卡, 开始运行后可以用微信或者airkiss_debugger发送wifi密码进行测试, 
+如发送密码123456789,则有如下输出:
 
 ```
 NL80211_CMD_TRIGGER_SCAN sent 36 bytes to the kernel.
@@ -54,6 +55,7 @@ Mac Address:[50:bd:5f:84:6d:d9], Channel:[ 1], SSID_CRC:[e3], SSID:[365/63/602]
 Mac Address:[bc:d1:77:3a:06:64], Channel:[13], SSID_CRC:[e7], SSID:[MERCURY_802]
 air_cfg size:96
 Airkiss version: V1.2
+exec cmd: iw wlan1 set channel 1
 exec cmd: iw wlan1 set channel 2
 exec cmd: iw wlan1 set channel 6
 exec cmd: iw wlan1 set channel 13
