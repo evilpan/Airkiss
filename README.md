@@ -25,11 +25,35 @@
 ## Build
 
 `main.c`在Linux下进行切换wifi模式,切换信道以及抓包,实现了一个简单的airkiss上层应用.
-编译和运行过程如下:
+编译过程如下:
 
-    $ make clean
-    $ make
-    $ sudo ./airkiss wlan1
+> Linux下抓包需要用到`libnl-3`, `libnl-genl-3` 以及 `libpcap`, 操作网卡需要root权限.  
+
+
+
+```
+$ sudo apt-get install libnl-3-dev libnl-genl-3-dev libpcap-dev
+$ make clean
+$ make
+
+```
+
+## Run
+
+运行时需要关闭占用网卡的进程,如NetworkManager等:
+
+
+```
+$ sudo service NetworkManager stop
+或者
+$ sudo systemctl stop NetworkManager.service
+```
+
+运行程序,抓包和切换信道需要root权限:
+
+```
+$ sudo ./airkiss wlan1
+```
 
 其中wlan1是所选择的无线网卡, 开始运行后可以用微信或者airkiss_debugger发送wifi密码进行测试, 
 如发送密码123456789,则有如下输出:
@@ -100,10 +124,6 @@ Sending random to broadcast..
 向10000端口广播random值通知发送端即可完成配置.
 
 > 注:  
-> Linux下抓包需要用到`libnl-3`, `libnl-genl-3` 以及 `libpcap`, 操作网卡需要root权限.  
-```
-sudo apt-get install libnl-3-dev libnl-genl-3-dev libpcap-dev
-```
 > 由于不同抓包策略会导致抓到的包格式各不相同,比如有的是带802.11头的数据帧(亦即微信官方要求的格式),  
 > 有的是更底层的比如带Radiotap头的数据,更有的是不带头的纯数据,为了彼此兼容,理论上可以仅用长度来编解码.
 > 但实践中发现,如果不对数据帧进行筛选,周围无线信号过多时会造成很大干扰,从而导致无法在指定时间内完成,  
