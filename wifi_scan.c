@@ -332,7 +332,7 @@ int wifi_scan(const char *device, wifi_scan_callback callback) {
     genl_connect(socket);  // Create file descriptor and bind socket.
     int driver_id = genl_ctrl_resolve(socket, "nl80211");  // Find the nl80211 driver ID.
     //printf("80211 driver_id is %d\n", driver_id);
-    //printf("index is %d\n", if_nametoindex("wlan0"));
+    //printf("index is %d\n", if_nametoindex(device));
     //return 0;
 
     // Issue NL80211_CMD_TRIGGER_SCAN to the kernel and wait for it to finish.

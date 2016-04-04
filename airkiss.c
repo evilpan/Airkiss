@@ -6,8 +6,7 @@
 #define PASSWORD_MAX_LEN    32
 #define ESSID_MAX_LEN        32
 
-//Only save password and random
-#define USR_DATA_BUFF_MAX_SIZE    (PASSWORD_MAX_LEN + 1)
+#define USR_DATA_BUFF_MAX_SIZE    (PASSWORD_MAX_LEN + 1 + ESSID_MAX_LEN)
 typedef enum
 {
     AIRKISS_STATE_STOPED = 0,
@@ -299,8 +298,9 @@ static void airkiss_process_prefix_code(airkiss_context_t* context,
             return;
         }
 
-        air_cfg->need_seq = ((air_cfg->pswd_len + 1) + 3)/4; //all we need is password and random
-        air_cfg->seq_success_map_cmp = (1 << air_cfg->need_seq) - 1; // EXAMPLE: need_seq = 5; seq_success_map_cmp = 0x1f;
+        // only receive password and random
+        air_cfg->need_seq = ((air_cfg->pswd_len + 1) + 3)/4; 
+        air_cfg->seq_success_map_cmp = (1 << air_cfg->need_seq) - 1; // EXAMPLE: need_seq = 5; seq_success_map_cmp = 0x1f; 独热码
             
         resest_airkiss_data();
         akconf->printf("airkiss_process_prefix_code success\n");
@@ -347,10 +347,16 @@ static void airkiss_process_sequence(airkiss_context_t* context,
 
             if(air_cfg->seq_success_map_cmp == air_cfg->seq_success_map)
             {
+                int i;
+                printf("User data is :");
+                for(i=0;i<air_cfg->pswd_len + 1 + 10; i++) {
+                    printf("0x%2x, ",air_cfg->usr_data[i]);
+                }
                 air_cfg->random_num = air_cfg->usr_data[air_cfg->pswd_len];
                 air_cfg->usr_data[air_cfg->pswd_len] = 0;
                 air_cfg->pwd = (char*)air_cfg->usr_data;
-                air_cfg->ssid = NULL;
+                //air_cfg->ssid = (char*)air_cfg->usr_data + air_cfg->pswd_len + 1;
+                //air_cfg->usr_data[air_cfg->pswd_len + 1 + air_cfg->ssid_len] = 0;
                 air_cfg->airkiss_state = AIRKISS_STATE_COMPLETE;
             }
         }

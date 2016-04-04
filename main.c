@@ -25,7 +25,7 @@
 
 
 #define BUF_SIZE	1024
-#define MAX_CHANNEL 14
+#define MAX_CHANNELS 14
 
 static airkiss_context_t *akcontex = NULL;
 const airkiss_config_t akconf = { 
@@ -41,7 +41,7 @@ int startTimer(struct itimerval *timer, int ms);
 int udp_broadcast(unsigned char random, int port);
 char *wifi_if = NULL;
 struct wif *wi = NULL;
-int channels[MAX_CHANNEL] = {0};
+int channels[MAX_CHANNELS] = {0};
 int channel_index = 0;
 int channel_nums = 0;
 pthread_mutex_t lock;
@@ -83,7 +83,7 @@ int process_airkiss(const unsigned char *packet, int size)
     {
         printf("Airkiss completed.\n");
         airkiss_get_result(akcontex, &ak_result);
-        printf("get result:\nreserved:%x\nkey:%s\nkey_len:%d\nrandom:%d\n", 
+        printf("get result: ssid_crc:%x\nkey:%s\nkey_len:%d\nrandom:%d\n", 
             ak_result.reserved, ak_result.pwd, ak_result.pwd_length, ak_result.random);
 
         //TODO: scan and connect to wifi
@@ -164,6 +164,16 @@ static int scan_callback(struct nl_msg *msg, void *arg)
     return NL_SKIP;
 }
 
+void init_channels()
+{
+    int i;
+    //add channel 1-13
+    for(i=1; i<MAX_CHANNELS; i++)
+    {
+        add_channel(i);
+    }
+}
+
 int main(int argc, char *argv[])
 {
     if(argc!=2)
@@ -178,16 +188,8 @@ int main(int argc, char *argv[])
 		return 1;
 	}
 
-    char *dev;
-    char errbuf[PCAP_ERRBUF_SIZE];
-
-    dev = pcap_lookupdev(errbuf);
-    if(NULL==dev)
-    {
-        printf("Error: %s\n", errbuf);
-        return -1;
-    }
-    wifi_scan(dev, &scan_callback);
+    init_channels();
+    //wifi_scan(wifi_if, &scan_callback);
 
     /* airkiss setup */
     int result;
@@ -206,7 +208,7 @@ int main(int argc, char *argv[])
     }
 
     /* Setup channel switch timer */
-    startTimer(&my_timer, 1000);   
+    startTimer(&my_timer, 200);   
     signal(SIGALRM,(__sighandler_t)&switch_channel_callback);
     
    
