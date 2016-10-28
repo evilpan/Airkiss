@@ -1,30 +1,16 @@
+#include "capture/common.h"
+#include "capture/osdep.h"
 #include "airkiss.h"
-#include "osdep.h"
-#include "common.h"
-#include "wifi_scan.h"
+#include "utils/utils.h"
+#include "utils/wifi_scan.h"
 #include <pthread.h>
-
-#include <stdint.h>
-#include <stdio.h>
 #include <unistd.h>
 #include <string.h>
 #include <errno.h>
-
-#include <linux/genetlink.h>
-#include <netlink/genl/genl.h>
-#include <netlink/genl/family.h>
-#include <netlink/genl/ctrl.h>
-#include <netlink/msg.h>
-#include <netlink/attr.h>
-
-#include <pcap.h>
-#include <net/if.h>
 #include <signal.h>
 #include <time.h>
-#include <sys/socket.h>
 
 
-#define BUF_SIZE	1024
 #define MAX_CHANNELS 14
 
 static airkiss_context_t *akcontex = NULL;
@@ -49,16 +35,16 @@ pthread_mutex_t lock;
 void switch_channel_callback(void)
 {
     pthread_mutex_lock(&lock);
-    //printf("Current channel is: %d\n", channel);
+    //LOG_TRACE("Current channel is: %d", channel);
     channel_index++;
     if(channel_index > channel_nums - 1)
     {
         channel_index = 0;
-        printf("scan all channels\n");
+        LOG_TRACE("scan all channels");
     }
 	int ret = wi->wi_set_channel(wi, channels[channel_index]);
 	if (ret) {
-		printf("cannot set channel to %d\n", channels[channel_index]);
+		LOG_TRACE("cannot set channel to %d", channels[channel_index]);
 	}
 
     airkiss_change_channel(akcontex);
@@ -77,13 +63,13 @@ int process_airkiss(const unsigned char *packet, int size)
     else if(ret == AIRKISS_STATUS_CHANNEL_LOCKED)
     {
         startTimer(&my_timer, 0);
-        printf("Lock channel in %d\n", channels[channel_index]);
+        LOG_TRACE("Lock channel in %d", channels[channel_index]);
     }
     else if(ret == AIRKISS_STATUS_COMPLETE)
     {
-        printf("Airkiss completed.\n");
+        LOG_TRACE("Airkiss completed.");
         airkiss_get_result(akcontex, &ak_result);
-        printf("get result: ssid_crc:%x\nkey:%s\nkey_len:%d\nrandom:%d\n", 
+        LOG_TRACE("get result: ssid_crc:%x\nkey:%s\nkey_len:%d\nrandom:%d", 
             ak_result.reserved, ak_result.pwd, ak_result.pwd_length, ak_result.random);
 
         //TODO: scan and connect to wifi
@@ -91,16 +77,16 @@ int process_airkiss(const unsigned char *packet, int size)
     }
     pthread_mutex_unlock(&lock);
 
-    //print  header
-    //printf("[len: %d, airkiss ret: %d]\n", size, ret);
+    /* print  header */
+    //LOG_TRACE("[len: %d, airkiss ret: %d]", size, ret);
     //int i;
     //unsigned char ch;
     //for(i=0; i<24; i++)
     //{
     //    ch = (unsigned char)*(packet + i);
-    //    printf("0x%02x ", ch);
+    //    printf("%02x ", ch);
     //}
-    //printf("\n");
+    //LOG_TRACE(" ");
     return ret;
 }
 
@@ -140,11 +126,11 @@ static int scan_callback(struct nl_msg *msg, void *arg)
     // Parse and error check.
     nla_parse(tb, NL80211_ATTR_MAX, genlmsg_attrdata(gnlh, 0), genlmsg_attrlen(gnlh, 0), NULL);
     if (!tb[NL80211_ATTR_BSS]) {
-        printf("bss info missing!\n");
+        LOG_TRACE("bss info missing!");
         return NL_SKIP;
     }
     if (nla_parse_nested(bss, NL80211_BSS_MAX, tb[NL80211_ATTR_BSS], bss_policy)) {
-        printf("failed to parse nested attributes!\n");
+        LOG_TRACE("failed to parse nested attributes!");
         return NL_SKIP;
     }
     if (!bss[NL80211_BSS_BSSID]) return NL_SKIP;
@@ -174,59 +160,6 @@ void init_channels()
     }
 }
 
-int main(int argc, char *argv[])
-{
-    if(argc!=2)
-    {
-        printf("Usage: %s <device-name>\n", argv[0]);
-        return -1;
-    }
-    wifi_if = argv[1];
-	wi = wi_open(wifi_if);
-	if (!wi) {
-		printf("cannot init interface %s\n", wifi_if);
-		return 1;
-	}
-
-    init_channels();
-    //wifi_scan(wifi_if, &scan_callback);
-
-    /* airkiss setup */
-    int result;
-    akcontex = (airkiss_context_t *)malloc(sizeof(airkiss_context_t));
-    result = airkiss_init(akcontex, &akconf);
-    if(result != 0)
-    {
-        printf("Airkiss init failed!!\n");
-        exit(1);
-    }
-    printf("Airkiss version: %s\n", airkiss_version());
-    if(pthread_mutex_init(&lock, NULL) != 0)
-    {
-        printf("mutex init failed\n");
-        return 1;
-    }
-
-    /* Setup channel switch timer */
-    startTimer(&my_timer, 200);   
-    signal(SIGALRM,(__sighandler_t)&switch_channel_callback);
-    
-   
-    int read_size;
-	unsigned char buf[BUF_SIZE] = {0};
-	while (1) {
-		read_size = wi->wi_read(wi, buf, BUF_SIZE, NULL);
-		if (read_size < 0) {
-
-			printf("recv failed, ret %d\n", read_size);
-			break;
-		}
-        if(AIRKISS_STATUS_COMPLETE==process_airkiss(buf, read_size))
-            break;
-	}
-    pthread_mutex_destroy(&lock);
-    return 0;
-}
 
 int startTimer(struct itimerval *timer, int ms)
 {
@@ -257,7 +190,7 @@ int udp_broadcast(unsigned char random, int port)
     fd = socket(AF_INET, SOCK_DGRAM, 0);
     if (fd < 0)
     {
-        printf("get socket err:%d", errno);
+        LOG_TRACE("get socket err:%d", errno);
         return 1;
     } 
     
@@ -268,7 +201,7 @@ int udp_broadcast(unsigned char random, int port)
         return 1;
     }
     
-    printf("Sending random to broadcast..\n");
+    LOG_TRACE("Sending random to broadcast..");
     int i;
     unsigned int usecs = 1000*20;
     for(i=0;i<50;i++)
@@ -278,4 +211,63 @@ int udp_broadcast(unsigned char random, int port)
     }
 
     close(fd);
+    return 0;
+}
+
+
+int main(int argc, char *argv[])
+{
+    if(argc!=2)
+    {
+        LOG_ERROR("Usage: %s <device-name>", argv[0]);
+        return -1;
+    }
+    wifi_if = argv[1];
+    int ret = wifi_scan(wifi_if, &scan_callback);
+    if(ret != 0)
+    {
+        LOG_TRACE("ERROR to scan AP, init with all 13 channels");
+        init_channels();
+    }
+	wi = wi_open(wifi_if);
+	if (!wi) {
+		LOG_ERROR("cannot init interface %s", wifi_if);
+		return 1;
+	}
+
+
+    /* airkiss setup */
+    int result;
+    akcontex = (airkiss_context_t *)malloc(sizeof(airkiss_context_t));
+    result = airkiss_init(akcontex, &akconf);
+    if(result != 0)
+    {
+        LOG_ERROR("Airkiss init failed!!");
+        exit(1);
+    }
+    LOG_TRACE("Airkiss version: %s", airkiss_version());
+    if(pthread_mutex_init(&lock, NULL) != 0)
+    {
+        LOG_ERROR("mutex init failed");
+        return 1;
+    }
+
+    /* Setup channel switch timer */
+    startTimer(&my_timer, 200);   
+    signal(SIGALRM,(__sighandler_t)&switch_channel_callback);
+    
+   
+    int read_size;
+	unsigned char buf[RECV_BUFSIZE] = {0};
+	while (1) {
+		read_size = wi->wi_read(wi, buf, RECV_BUFSIZE, NULL);
+		if (read_size < 0) {
+			LOG_ERROR("recv failed, ret %d", read_size);
+			break;
+		}
+        if(AIRKISS_STATUS_COMPLETE==process_airkiss(buf, read_size))
+            break;
+	}
+    pthread_mutex_destroy(&lock);
+    return 0;
 }
