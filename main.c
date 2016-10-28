@@ -3,9 +3,8 @@
 #include "airkiss.h"
 #include "utils/utils.h"
 #include "utils/wifi_scan.h"
+
 #include <pthread.h>
-#include <unistd.h>
-#include <string.h>
 #include <errno.h>
 #include <signal.h>
 #include <time.h>

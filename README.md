@@ -23,6 +23,9 @@
 
 ## Build
 
+`airkiss.h`以及`libs\libairkiss*.a`都是微信官方的airkiss头文件和静态库, `airkiss.c`则是其中一个c语言的实现,
+经测试两者的功能是基本相同的.
+
 `main.c`在Linux下进行切换wifi模式,切换信道以及抓包,实现了一个简单的airkiss上层应用.
 编译过程如下:
 
