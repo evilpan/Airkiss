@@ -1,13 +1,13 @@
 #ifndef WIFI_SCAN
 #define WIFI_SCAN
 
-#include <netlink/errno.h>
-#include <netlink/netlink.h>
-#include <netlink/genl/genl.h>
-#include <linux/nl80211.h>
-typedef int (*wifi_scan_callback)(struct nl_msg *msg, void *arg);
-int wifi_scan(const char *device, wifi_scan_callback callback);
-void print_ssid(unsigned char *ie, int ielen);
-void get_ssid(unsigned char *ie, int ielen, char *ssid);
-void mac_addr_n2a(char *mac_addr, unsigned char *arg);
+#include <iwlib.h>
+#define MAX_ESSID_SIZE 255
+#define MAX_BSSID_SIZE 18
+int wifi_scan(const char *device, wireless_scan_head *result_head);
+unsigned int get_freq_mhz(wireless_scan *ap);
+void get_bssid(wireless_scan *ap, char *bssid, unsigned int len);
+void get_essid(wireless_scan *ap, char *essid, unsigned int len);
+
+void print_ap_info(wireless_scan *ap);
 #endif
