@@ -69,13 +69,13 @@ typedef struct
     unsigned short seq_success_map;
     unsigned short seq_success_map_cmp;
     union airkiss_data data;
-}_airkiss_local_cfg;
+}_airkiss_local_context;
 
-const char airkiss_vers[] = "V1.2";
+const char airkiss_vers[] = "V1.3";
 
 static airkiss_config_t *akconf = 0;
 static airkiss_context_t *akcontex = 0;
-static _airkiss_local_cfg air_cfg;
+static _airkiss_local_context _akcontext;
 
 //crc8
 unsigned char calcrc_1byte(unsigned char abyte)    
@@ -101,7 +101,7 @@ unsigned char calcrc_1byte(unsigned char abyte)
 }  
 
 
-unsigned char calcrc_bytes(unsigned char *p,unsigned char num_of_bytes)  
+unsigned char calcrc_bytes(unsigned char *p,unsigned int num_of_bytes)  
 {  
     unsigned char crc=0;  
     while(num_of_bytes--) 
@@ -159,14 +159,14 @@ static void airkiss_record_move_ones(void *base_addr, int record_num)
 
 static void airkiss_add_seq_data(const unsigned char *data, int seq)
 {
-    if(seq < air_cfg.need_seq)
+    if(seq < _akcontext.need_seq)
     {
         if((seq*4 + 4) <= USR_DATA_BUFF_MAX_SIZE)
         {
-            if((air_cfg.seq_success_map & (1 << seq)) == 0) 
+            if((_akcontext.seq_success_map & (1 << seq)) == 0) 
             {
-                akconf->memcpy(air_cfg.usr_data + seq*4, data, 4);
-                air_cfg.seq_success_map |= (1 << seq);
+                akconf->memcpy(_akcontext.usr_data + seq*4, data, 4);
+                _akcontext.seq_success_map |= (1 << seq);
             }
         }
     }
@@ -181,41 +181,41 @@ int airkiss_init(airkiss_context_t* context,
     akcontex = context;
     akconf = (airkiss_config_t*)config;
 
-    akconf->memset(&air_cfg , 0, sizeof(_airkiss_local_cfg));
-    air_cfg.airkiss_state = AIRKISS_STATE_IDLE;
+    akconf->memset(&_akcontext , 0, sizeof(_airkiss_local_context));
+    _akcontext.airkiss_state = AIRKISS_STATE_IDLE;
 
-    akconf->printf("air_cfg size:%ld\n", sizeof(_airkiss_local_cfg));
+    akconf->printf("airkiss_local_context size:%ld\n", sizeof(_airkiss_local_context));
     return 0;
 }
 
 static void resest_airkiss_data()
 {
-    akconf->memset(&air_cfg.data, 0, sizeof(union airkiss_data));
+    akconf->memset(&_akcontext.data, 0, sizeof(union airkiss_data));
 }
 
 static void airkiss_recv_discover(const void* frame, unsigned short length)
 {
     int success = 0;
 
-    air_cfg.data.guide_code.length_record[MAX_GUIDE_RECORD] = length;
+    _akcontext.data.guide_code.length_record[MAX_GUIDE_RECORD] = length;
 
-    airkiss_record_move_ones(air_cfg.data.guide_code.length_record, MAX_GUIDE_RECORD);
+    airkiss_record_move_ones(_akcontext.data.guide_code.length_record, MAX_GUIDE_RECORD);
 
      // 1 2 3 4
-    if((air_cfg.data.guide_code.length_record[1] - air_cfg.data.guide_code.length_record[0] == 1) &&
-    (air_cfg.data.guide_code.length_record[2] - air_cfg.data.guide_code.length_record[1] == 1) &&
-    (air_cfg.data.guide_code.length_record[3] - air_cfg.data.guide_code.length_record[2] == 1))
+    if((_akcontext.data.guide_code.length_record[1] - _akcontext.data.guide_code.length_record[0] == 1) &&
+    (_akcontext.data.guide_code.length_record[2] - _akcontext.data.guide_code.length_record[1] == 1) &&
+    (_akcontext.data.guide_code.length_record[3] - _akcontext.data.guide_code.length_record[2] == 1))
     {
-        air_cfg.base_len = air_cfg.data.guide_code.length_record[0] - 1;
+        _akcontext.base_len = _akcontext.data.guide_code.length_record[0] - 1;
         success = 1;
     }
     
     if(success)
     {
-        air_cfg.airkiss_state = AIRKISS_STATE_SRC_LOCKED;
+        _akcontext.airkiss_state = AIRKISS_STATE_SRC_LOCKED;
         resest_airkiss_data();
         akconf->printf("airkiss_recv_discover success\n");
-        akconf->printf("base len:%d\n", air_cfg.base_len);
+        akconf->printf("base len:%d\n", _akcontext.base_len);
 
         int i;
         unsigned char ch;
@@ -223,54 +223,52 @@ static void airkiss_recv_discover(const void* frame, unsigned short length)
         {
             ch = *((unsigned char*)frame + i);
             akcontex->dummyap[i] = ch;
-            //printf("0x%02x ", akcontex->dummyap[i]);
+            //akconf->printf("0x%02x ", akcontex->dummyap[i]);
         }
     }
 }
 
 
-static void airkiss_process_magic_code(airkiss_context_t* context, 
-                            const void* frame, unsigned short length)
+static void airkiss_process_magic_code(unsigned short length)
 {
-    air_cfg.data.magic_code.record[MAX_MAGIC_CODE_RECORD] = length - air_cfg.base_len;
+    _akcontext.data.magic_code.record[MAX_MAGIC_CODE_RECORD] = length - _akcontext.base_len;
 
-    airkiss_record_move_ones(air_cfg.data.magic_code.record, MAX_MAGIC_CODE_RECORD);
+    airkiss_record_move_ones(_akcontext.data.magic_code.record, MAX_MAGIC_CODE_RECORD);
 
-    if(((air_cfg.data.magic_code.record[0]&0x01f0)==0x0000)&&
-        ((air_cfg.data.magic_code.record[1]&0x01f0)==0x0010)&&
-            ((air_cfg.data.magic_code.record[2]&0x01f0)==0x0020)&&
-            ((air_cfg.data.magic_code.record[3]&0x01f0)==0x0030))
+    if(((_akcontext.data.magic_code.record[0]&0x01f0)==0x0000)&&
+        ((_akcontext.data.magic_code.record[1]&0x01f0)==0x0010)&&
+            ((_akcontext.data.magic_code.record[2]&0x01f0)==0x0020)&&
+            ((_akcontext.data.magic_code.record[3]&0x01f0)==0x0030))
     {
-        air_cfg.total_len = ((air_cfg.data.magic_code.record[0] & 0x000F) << 4) + (air_cfg.data.magic_code.record[1] & 0x000F);
-        air_cfg.ssid_crc = ((air_cfg.data.magic_code.record[2] & 0x000F) << 4) + (air_cfg.data.magic_code.record[3] & 0x000F);
+        _akcontext.total_len = ((_akcontext.data.magic_code.record[0] & 0x000F) << 4) + (_akcontext.data.magic_code.record[1] & 0x000F);
+        _akcontext.ssid_crc = ((_akcontext.data.magic_code.record[2] & 0x000F) << 4) + (_akcontext.data.magic_code.record[3] & 0x000F);
         //TODO:double check magic code
-        air_cfg.airkiss_state = AIRKISS_STATE_MAGIC_CODE_COMPLETE;
+        _akcontext.airkiss_state = AIRKISS_STATE_MAGIC_CODE_COMPLETE;
         resest_airkiss_data();
         akconf->printf("airkiss_process_magic_code success\n");
-        akconf->printf("total_len:%d, ssid crc:%x\n", air_cfg.total_len, air_cfg.ssid_crc);
+        akconf->printf("total_len:%d, ssid crc:%x\n", _akcontext.total_len, _akcontext.ssid_crc);
     }
 }
 
-static void airkiss_process_prefix_code(airkiss_context_t* context, 
-                            const void* frame, unsigned short length)
+static void airkiss_process_prefix_code(unsigned short length)
 {
     
-    air_cfg.data.prefix_code.record[MAX_PREFIX_CODE_RECORD] = length - air_cfg.base_len;
+    _akcontext.data.prefix_code.record[MAX_PREFIX_CODE_RECORD] = length - _akcontext.base_len;
 
-    airkiss_record_move_ones(air_cfg.data.prefix_code.record, MAX_PREFIX_CODE_RECORD );
+    airkiss_record_move_ones(_akcontext.data.prefix_code.record, MAX_PREFIX_CODE_RECORD );
 
-    if((air_cfg.data.prefix_code.record[0]&0x01f0)==0x0040&&
-        (air_cfg.data.prefix_code.record[1]&0x01f0)==0x0050&&
-            (air_cfg.data.prefix_code.record[2]&0x01f0)==0x0060&&
-            (air_cfg.data.prefix_code.record[3]&0x01f0)==0x0070)
+    if((_akcontext.data.prefix_code.record[0]&0x01f0)==0x0040&&
+        (_akcontext.data.prefix_code.record[1]&0x01f0)==0x0050&&
+            (_akcontext.data.prefix_code.record[2]&0x01f0)==0x0060&&
+            (_akcontext.data.prefix_code.record[3]&0x01f0)==0x0070)
     {
-        air_cfg.pswd_len = ((air_cfg.data.prefix_code.record[0] & 0x000F) << 4) + (air_cfg.data.prefix_code.record[1] & 0x000F);
-        if(air_cfg.pswd_len > PASSWORD_MAX_LEN)
-            air_cfg.pswd_len = 0;
-        air_cfg.pswd_lencrc = ((air_cfg.data.prefix_code.record[2] & 0x000F) << 4) + (air_cfg.data.prefix_code.record[3] & 0x000F);
-        if(calcrc_1byte(air_cfg.pswd_len)==air_cfg.pswd_lencrc)
+        _akcontext.pswd_len = ((_akcontext.data.prefix_code.record[0] & 0x000F) << 4) + (_akcontext.data.prefix_code.record[1] & 0x000F);
+        if(_akcontext.pswd_len > PASSWORD_MAX_LEN)
+            _akcontext.pswd_len = 0;
+        _akcontext.pswd_lencrc = ((_akcontext.data.prefix_code.record[2] & 0x000F) << 4) + (_akcontext.data.prefix_code.record[3] & 0x000F);
+        if(calcrc_1byte(_akcontext.pswd_len)==_akcontext.pswd_lencrc)
         {
-            air_cfg.airkiss_state = AIRKISS_STATE_PREFIX_CODE_COMPLETE;
+            _akcontext.airkiss_state = AIRKISS_STATE_PREFIX_CODE_COMPLETE;
         }
         else
         {
@@ -280,68 +278,67 @@ static void airkiss_process_prefix_code(airkiss_context_t* context,
         }
 
         // only receive password and random
-        air_cfg.need_seq = ((air_cfg.pswd_len + 1) + 3)/4; 
-        air_cfg.seq_success_map_cmp = (1 << air_cfg.need_seq) - 1; // EXAMPLE: need_seq = 5; seq_success_map_cmp = 0x1f; 独热码
+        _akcontext.need_seq = ((_akcontext.pswd_len + 1) + 3)/4; 
+        _akcontext.seq_success_map_cmp = (1 << _akcontext.need_seq) - 1; // EXAMPLE: need_seq = 5; seq_success_map_cmp = 0x1f; 独热码
             
         resest_airkiss_data();
         akconf->printf("airkiss_process_prefix_code success\n");
         akconf->printf("pswd_len:%d, pswd_lencrc:%x, need seq:%d, seq map:%x\n", 
-                air_cfg.pswd_len, air_cfg.pswd_lencrc, air_cfg.need_seq, air_cfg.seq_success_map_cmp);
+                _akcontext.pswd_len, _akcontext.pswd_lencrc, _akcontext.need_seq, _akcontext.seq_success_map_cmp);
     }
 }
 
-static void airkiss_process_sequence(airkiss_context_t* context, 
-                            const void* frame, unsigned short length)
+static void airkiss_process_sequence(unsigned short length)
 {
-    unsigned char tempBuffer[6];
     
-    air_cfg.data.seq_code.record[MAX_SEQ_CODE_RECORD] = length - air_cfg.base_len;
+    _akcontext.data.seq_code.record[MAX_SEQ_CODE_RECORD] = length - _akcontext.base_len;
 
-    airkiss_record_move_ones(air_cfg.data.seq_code.record, MAX_SEQ_CODE_RECORD);
+    airkiss_record_move_ones(_akcontext.data.seq_code.record, MAX_SEQ_CODE_RECORD);
 
-    if(((air_cfg.data.seq_code.record[0]&0x180)==0x80) &&
-        ((air_cfg.data.seq_code.record[1]&0x180)==0x80) && 
-        ((air_cfg.data.seq_code.record[2]&0x0100)==0x0100) && 
-        ((air_cfg.data.seq_code.record[3]&0x0100)==0x0100) && 
-        ((air_cfg.data.seq_code.record[4]&0x0100)==0x0100) && 
-        ((air_cfg.data.seq_code.record[5]&0x0100)==0x0100) && 
-        ((air_cfg.data.seq_code.record[1]&0x7F) <= ((air_cfg.total_len>>2)+1)))
+    if(((_akcontext.data.seq_code.record[0]&0x180)==0x80) &&
+        ((_akcontext.data.seq_code.record[1]&0x180)==0x80) && 
+        ((_akcontext.data.seq_code.record[2]&0x0100)==0x0100) && 
+        ((_akcontext.data.seq_code.record[3]&0x0100)==0x0100) && 
+        ((_akcontext.data.seq_code.record[4]&0x0100)==0x0100) && 
+        ((_akcontext.data.seq_code.record[5]&0x0100)==0x0100) && 
+        ((_akcontext.data.seq_code.record[1]&0x7F) <= ((_akcontext.total_len>>2)+1)))
     {
-        tempBuffer[0]=air_cfg.data.seq_code.record[0]&0x7F; //seq crc
-        tempBuffer[1]=air_cfg.data.seq_code.record[1]&0x7F; //seq index
-        tempBuffer[2]=air_cfg.data.seq_code.record[2]&0xFF; //data, same as following
-        tempBuffer[3]=air_cfg.data.seq_code.record[3]&0xFF;
-        tempBuffer[4]=air_cfg.data.seq_code.record[4]&0xFF;
-        tempBuffer[5]=air_cfg.data.seq_code.record[5]&0xFF;
+        unsigned char tempBuffer[6];
+        tempBuffer[0]=_akcontext.data.seq_code.record[0]&0x7F; //seq crc
+        tempBuffer[1]=_akcontext.data.seq_code.record[1]&0x7F; //seq index
+        tempBuffer[2]=_akcontext.data.seq_code.record[2]&0xFF; //data, same as following
+        tempBuffer[3]=_akcontext.data.seq_code.record[3]&0xFF;
+        tempBuffer[4]=_akcontext.data.seq_code.record[4]&0xFF;
+        tempBuffer[5]=_akcontext.data.seq_code.record[5]&0xFF;
 
-        akconf->printf("seq:%d, %x,%x,%x,%x\n", tempBuffer[1], tempBuffer[2], tempBuffer[3], tempBuffer[4], tempBuffer[5]);
+        akconf->printf("[seq:%d]:%x,%x,%x,%x \t", tempBuffer[1], tempBuffer[2], tempBuffer[3], tempBuffer[4], tempBuffer[5]);
         if(tempBuffer[0] == (calcrc_bytes(tempBuffer+1,5)&0x7F) )
         {
             int cur_seq = tempBuffer[1];
 
             airkiss_add_seq_data(&tempBuffer[2], cur_seq);
 
-            akconf->printf("now seq map:%x\n", air_cfg.seq_success_map);
+            akconf->printf("now seq map:%x.\n", _akcontext.seq_success_map);
             resest_airkiss_data();
 
-            if(air_cfg.seq_success_map_cmp == air_cfg.seq_success_map)
+            if(_akcontext.seq_success_map_cmp == _akcontext.seq_success_map)
             {
                 int i;
-                printf("User data is :");
-                for(i=0;i<air_cfg.pswd_len + 1 + 10; i++) {
-                    printf("0x%2x, ",air_cfg.usr_data[i]);
+                akconf->printf("User data is :");
+                for(i=0;i<_akcontext.pswd_len + 1 + 10; i++) {
+                    akconf->printf("0x%02x, ",_akcontext.usr_data[i]);
                 }
-                air_cfg.random_num = air_cfg.usr_data[air_cfg.pswd_len];
-                air_cfg.usr_data[air_cfg.pswd_len] = 0;
-                air_cfg.pwd = (char*)air_cfg.usr_data;
-                //air_cfg.ssid = (char*)air_cfg.usr_data + air_cfg.pswd_len + 1;
-                //air_cfg.usr_data[air_cfg.pswd_len + 1 + air_cfg.ssid_len] = 0;
-                air_cfg.airkiss_state = AIRKISS_STATE_COMPLETE;
+                _akcontext.random_num = _akcontext.usr_data[_akcontext.pswd_len];
+                _akcontext.usr_data[_akcontext.pswd_len] = 0;
+                _akcontext.pwd = (char*)_akcontext.usr_data;
+                //_akcontext.ssid = (char*)_akcontext.usr_data + _akcontext.pswd_len + 1;
+                //_akcontext.usr_data[_akcontext.pswd_len + 1 + _akcontext.ssid_len] = 0;
+                _akcontext.airkiss_state = AIRKISS_STATE_COMPLETE;
             }
         }
         else
         {
-            akconf->printf("CRC check error, invalid sequence, Discared it.\n");
+            akconf->printf("crc check error, discaring invalid sequence.\n");
         }
     }
 }
@@ -351,30 +348,30 @@ int airkiss_recv(airkiss_context_t* context,
                             const void* frame, unsigned short length)
 {
 
-    if(air_cfg.airkiss_state != AIRKISS_STATE_IDLE)
+    if(_akcontext.airkiss_state != AIRKISS_STATE_IDLE)
         if(airkiss_filter(frame, length)!=0)
             return AIRKISS_STATUS_CONTINUE;
 
-    switch(air_cfg.airkiss_state)
+    switch(_akcontext.airkiss_state)
     {
         case AIRKISS_STATE_IDLE:
             airkiss_recv_discover(frame, length);
-            if(air_cfg.airkiss_state == AIRKISS_STATE_SRC_LOCKED)
+            if(_akcontext.airkiss_state == AIRKISS_STATE_SRC_LOCKED)
                 return AIRKISS_STATUS_CHANNEL_LOCKED;
             break;
         case AIRKISS_STATE_SRC_LOCKED:
-            airkiss_process_magic_code(context, frame, length);
+            airkiss_process_magic_code(length);
             break;
         case AIRKISS_STATE_MAGIC_CODE_COMPLETE:
-            airkiss_process_prefix_code(context, frame, length);
+            airkiss_process_prefix_code(length);
             break;    
         case AIRKISS_STATE_PREFIX_CODE_COMPLETE:
-            airkiss_process_sequence(context, frame, length);
-            if(air_cfg.airkiss_state == AIRKISS_STATE_COMPLETE)
+            airkiss_process_sequence(length);
+            if(_akcontext.airkiss_state == AIRKISS_STATE_COMPLETE)
                 return AIRKISS_STATUS_COMPLETE;
             break;        
         default:
-            air_cfg.airkiss_state = AIRKISS_STATE_IDLE;
+            _akcontext.airkiss_state = AIRKISS_STATE_IDLE;
             break;
     }
     return AIRKISS_STATUS_CONTINUE;
@@ -385,7 +382,7 @@ int airkiss_get_result(airkiss_context_t* context,
                             airkiss_result_t* result)
 {
 
-    memcpy(result, &air_cfg, sizeof(airkiss_result_t));
+    memcpy(result, &_akcontext, sizeof(airkiss_result_t));
 
     return 0;
 }
