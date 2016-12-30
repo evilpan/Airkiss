@@ -72,7 +72,7 @@ int process_airkiss(const unsigned char *packet, int size)
     {
         LOG_TRACE("Airkiss completed.");
         airkiss_get_result(akcontex, &ak_result);
-        LOG_TRACE("Result:\n ssid_crc:[%x]\nkey_len:[%d]\nkey:[%s]\nrandom:[0x%02x]", 
+        LOG_TRACE("Result:\nssid_crc:[%x]\nkey_len:[%d]\nkey:[%s]\nrandom:[0x%02x]", 
             ak_result.reserved,
             ak_result.pwd_length,
             ak_result.pwd,
@@ -243,7 +243,7 @@ int main(int argc, char *argv[])
     }
 
     /* Setup channel switch timer */
-    startTimer(&my_timer, 500);   
+    startTimer(&my_timer, 400);   
     signal(SIGALRM,(__sighandler_t)&switch_channel_callback);
     
    

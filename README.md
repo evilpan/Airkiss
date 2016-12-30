@@ -1,7 +1,7 @@
 # Airkiss
 
 
-## About Airkiss
+## About 
 
 [Airkiss][airkiss]是微信提出的一种无线应用层协议,主要用于给无法交互的硬件设备进行网络配置,
 如(智能)插座,灯泡,飞机杯等. 其原理是将硬件设备的网卡置于监听模式(monitor mode),
@@ -58,7 +58,7 @@ $ sudo ./airkiss wlan1
 ```
 
 其中wlan1是所选择的无线网卡, 开始运行后可以用微信公众号或者airkiss\_debugger发送wifi密码进行测试, 
-如发送密码qwertyuiop123456789,则有如下输出:
+如发送密码1234567890,则有如下输出:
 
 ```
 Scanning accesss point...
@@ -105,21 +105,28 @@ airkiss_recv_discover success
 base len:78
 Lock channel in 11
 airkiss_process_magic_code success
-total_len:26, ssid crc:fe
+total_len:65, ssid crc:fe
 airkiss_process_prefix_code success
-pswd_len:19, pswd_lencrc:7f, need seq:5, seq map:1f
-[seq:0]:71,77,65,72 	->seq mapped:1
-[seq:2]:6f,70,31,32 	->seq mapped:5
-[seq:3]:33,34,35,36 	->seq mapped:d
-[seq:4]:37,38,39,f7 	->seq mapped:1d
-[seq:0]:71,77,65,72 	->crc check error, discaring invalid sequence.
-[seq:1]:74,79,75,69 	->seq mapped:1f
-User data is :71 77 65 72 74 79 75 69 6f 70 31 32 33 34 35 36 37 38 39 f7 00 00 00 00 00 00 00 00 00 00 
+pswd_len:10, pswd_lencrc:7e, need seq:3, seq map:7
+[seq:0]:31,32,32,33; [crc:71]; crc check error. receive crc:[71], calc crc:[b6]
+[seq:1]:36,37,39,69; [crc:34]; crc check error. receive crc:[34], calc crc:[4e]
+[seq:1]:35,36,39,30; [crc:01]; crc check error. receive crc:[01], calc crc:[2a]
+[seq:1]:35,36,37,38; [crc:34]; seq mapped:2
+[seq:2]:39,39,39,30; [crc:6b]; crc check error. receive crc:[6b], calc crc:[29]
+[seq:2]:30,af,6a,6a; [crc:6b]; crc check error. receive crc:[6b], calc crc:[c4]
+[seq:3]:69,6e,31,32; [crc:77]; seq mapped:2
+[seq:0]:31,32,33,34; [crc:71]; seq mapped:3
+[seq:1]:35,36,37,38; [crc:34]; seq mapped:3
+[seq:3]:69,6e,6e,6e; [crc:77]; crc check error. receive crc:[77], calc crc:[e0]
+[seq:0]:32,33,34,34; [crc:71]; crc check error. receive crc:[71], calc crc:[bc]
+[seq:2]:39,30,af,6a; [crc:6b]; seq mapped:7
+User data is :31 32 33 34 35 36 37 38 39 30 af 6a 00 00 00 00 00 00 00 00 00 
 Airkiss completed.
-Result: ssid_crc:fe
-key:qwertyuiop123456789
-key_len:19
-random:0xf7
+Result:
+ssid_crc:[fe]
+key_len:[10]
+key:[1234567890]
+random:[0xaf]
 Sending random to broadcast..
 ```
 
@@ -132,7 +139,11 @@ Sending random to broadcast..
 > 由于不同抓包策略会导致抓到的包格式各不相同,比如有的是带802.11头的数据帧(亦即微信官方要求的格式),  
 > 有的是更底层的比如带Radiotap头的数据,更有的是不带头的纯数据(比如同一局域网内),为了彼此兼容,
 > 理论上可以仅用长度来编解码. 但实践中发现,如果不对数据帧进行筛选,周围无线信号过多时会造成很大干扰,
-> 从而导致无法在指定时间内完成, 因此代码里规定数据为80211数据帧,并对其24位header进行一定程度的过滤.
+> 从而导致无法在指定时间内完成指定数据的解码, 因此代码里规定数据为802.11数据帧, 并对其24位header进行一定程度的过滤.
+
+802.11的帧结构如下图所示, 目前对Address1/Address2/Address3字段进行了过滤, 其它详细的字段的介绍可以参考[其他博客][80211].
+
+![](img/80211.png)
 
 ## Known issue
 
@@ -144,4 +155,5 @@ Sending random to broadcast..
 [airkiss_doc]:http://wenku.baidu.com/view/0e825981ad02de80d5d8409c
 [airkiss_doc2]:https://www.docdroid.net/UIi8rgt/airkiss-protocol.pdf.html
 [smartcfg_doc]:http://electronics.stackexchange.com/questions/61704/how-does-ti-cc3000-wifi-smart-config-work
+[80211]:http://www.itcertnotes.com/2011/05/ieee-80211-frame-types.html
 
