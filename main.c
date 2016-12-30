@@ -72,7 +72,7 @@ int process_airkiss(const unsigned char *packet, int size)
     {
         LOG_TRACE("Airkiss completed.");
         airkiss_get_result(akcontex, &ak_result);
-        LOG_TRACE("get result: ssid_crc:%x\nkey:%s\nkey_len:%d\nrandom:%d", 
+        LOG_TRACE("Result: ssid_crc:%x\nkey:%s\nkey_len:%d\nrandom:0x%02x", 
             ak_result.reserved, ak_result.pwd, ak_result.pwd_length, ak_result.random);
 
         //TODO: scan and connect to wifi
@@ -190,17 +190,19 @@ int main(int argc, char *argv[])
             char essid[MAX_ESSID_SIZE];
             char bssid[MAX_BSSID_SIZE];
             unsigned int freq;
-            int channel;
+            int channel,power;
             unsigned char essid_crc;
 
             get_essid(presult, essid, MAX_ESSID_SIZE);
             get_bssid(presult, bssid, MAX_BSSID_SIZE);
             freq = get_freq_mhz(presult);
+            power = get_strength_dbm(presult);
+
             channel = getChannelFromFrequency(freq);
             essid_crc = calcrc_bytes((unsigned char*)essid, strlen(essid));
 
-            LOG_TRACE("bssid:[%s], freq:[%d], channel:[%2d], essid_crc:[%02x], essid:[%s]",
-                    bssid, freq, channel, essid_crc, essid);
+            LOG_TRACE("bssid:[%s], channel:[%2d], pow:[%d dBm], essid_crc:[%02x], essid:[%s]",
+                    bssid, channel, power, essid_crc, essid);
             add_channel(channel);
             presult = presult->next;
         }
@@ -210,6 +212,7 @@ int main(int argc, char *argv[])
         LOG_ERROR("ERROR to scan AP, init with all %d channels", MAX_CHANNELS);
         init_channels();
     }
+    return 0;
 
     /* Open the interface and set mode monitor */
 	wi = wi_open(wifi_if);
@@ -252,6 +255,8 @@ int main(int argc, char *argv[])
         if(AIRKISS_STATUS_COMPLETE==process_airkiss(buf, read_size))
             break;
 	}
+
+    free(akcontex);
     pthread_mutex_destroy(&lock);
     return 0;
 }
