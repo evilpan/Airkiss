@@ -14,7 +14,7 @@
 因此在已公开的Airkiss协议基础上实现了一份C代码. 
 
 > 注:  
-> 本例程实现的源码在[airkiss\_debugger][akdbg]以及微信(6.3.13)上测试通过, 但不保证100%兼容微信官方的静态库.  
+> 本例程实现的源码在[airkiss\_debugger][akdbg]以及微信(6.3.31)上测试通过, 但不保证100%兼容微信官方的静态库.  
 
 具体的实现细节可以参考下列**非官方**的资料和文档:
 
@@ -29,13 +29,13 @@
 `main.c`在Linux下进行切换wifi模式,切换信道以及抓包,实现了一个简单的airkiss上层应用.
 编译过程如下:
 
-> Linux下扫描热点需要用到`libnl-3`和`libnl-genl-3`, 如果不扫描热点(wifi_scan)则可以不用依赖这两个库.
+> Linux下扫描热点需要用到`libiw-dev`.
 > 操作网卡如切换信道,切换模式等需要root权限.  
 
 
 
 ```
-$ sudo apt-get install libnl-3-dev libnl-genl-3-dev
+$ sudo apt-get install libiw-dev
 $ make clean
 $ make
 ```
@@ -57,66 +57,69 @@ $ sudo systemctl stop NetworkManager.service
 $ sudo ./airkiss wlan1
 ```
 
-其中wlan1是所选择的无线网卡, 开始运行后可以用微信或者airkiss_debugger发送wifi密码进行测试, 
-如发送密码123456789,则有如下输出:
+其中wlan1是所选择的无线网卡, 开始运行后可以用微信公众号或者airkiss\_debugger发送wifi密码进行测试, 
+如发送密码qwertyuiop123456789,则有如下输出:
 
 ```
-NL80211_CMD_TRIGGER_SCAN sent 36 bytes to the kernel.
-Waiting for scan to complete...
-Got NL80211_CMD_NEW_SCAN_RESULTS.
-Scan is done.
-NL80211_CMD_GET_SCAN sent 28 bytes to the kernel.
-Mac Address:[80:89:17:48:ae:96], Channel:[ 1], SSID_CRC:[78], SSID:[TP-LINK_AE96]
-Mac Address:[f4:6a:92:26:96:fc], Channel:[ 2], SSID_CRC:[cc], SSID:[zhou'zhou]
-Mac Address:[a4:56:02:73:bb:03], Channel:[ 1], SSID_CRC:[40], SSID:[360WiFi-73BB03]
-Mac Address:[98:bc:57:46:97:73], Channel:[ 1], SSID_CRC:[ 2], SSID:[ChinaNGB-YDw1ap]
-Mac Address:[f8:d1:11:f1:3f:d6], Channel:[ 1], SSID_CRC:[e3], SSID:[manson]
-Mac Address:[80:89:17:15:9d:a8], Channel:[ 1], SSID_CRC:[69], SSID:[chinanet]
-Mac Address:[30:fc:68:05:35:3a], Channel:[ 1], SSID_CRC:[50], SSID:[maomao]
-Mac Address:[24:69:68:01:78:80], Channel:[ 1], SSID_CRC:[3f], SSID:[TP-LINK_7880]
-Mac Address:[0c:82:68:95:ff:24], Channel:[ 1], SSID_CRC:[2a], SSID:[TP-LINK_95FF24]
-Mac Address:[88:25:93:14:65:ca], Channel:[ 6], SSID_CRC:[b2], SSID:[365/64/602]
-Mac Address:[fc:d7:33:32:41:5a], Channel:[ 1], SSID_CRC:[89], SSID:[zhao]
-Mac Address:[50:bd:5f:84:6d:d9], Channel:[ 1], SSID_CRC:[e3], SSID:[365/63/602]
-Mac Address:[bc:d1:77:3a:06:64], Channel:[13], SSID_CRC:[e7], SSID:[MERCURY_802]
-air_cfg size:96
-Airkiss version: V1.2
+Scanning accesss point...
+Scan success.
+bssid:[cc:81:da:43:ea:e0], channel:[ 3], pow:[-68 dBm], essid_crc:[2c], essid:[@PHICOMM_D8]
+bssid:[d4:ee:07:0d:16:4c], channel:[ 3], pow:[-82 dBm], essid_crc:[a4], essid:[NO.9]
+bssid:[bc:46:99:af:d3:f6], channel:[11], pow:[-50 dBm], essid_crc:[fe], essid:[jin123]
+bssid:[a4:56:02:73:bb:03], channel:[ 1], pow:[-75 dBm], essid_crc:[40], essid:[360WiFi-73BB03]
+bssid:[d4:67:e7:0f:9b:51], channel:[ 1], pow:[-91 dBm], essid_crc:[00], essid:[ChinaNet-KnHF]
+bssid:[f4:b8:a7:6c:72:39], channel:[ 3], pow:[-86 dBm], essid_crc:[72], essid:[ChinaNet-TkT4]
+bssid:[08:57:00:5c:74:ca], channel:[ 1], pow:[-80 dBm], essid_crc:[ff], essid:[chai]
+bssid:[24:69:68:e9:78:d4], channel:[ 1], pow:[-87 dBm], essid_crc:[ac], essid:[TP-501]
+bssid:[f8:d1:11:f1:3f:d6], channel:[ 1], pow:[-68 dBm], essid_crc:[e3], essid:[manson]
+bssid:[c8:3a:35:48:32:80], channel:[ 9], pow:[-87 dBm], essid_crc:[25], essid:[Tenda_1003]
+bssid:[12:95:8e:60:f2:e4], channel:[11], pow:[-79 dBm], essid_crc:[62], essid:[TPGuest_F2E4]
+bssid:[c4:36:55:98:9a:75], channel:[11], pow:[-48 dBm], essid_crc:[00], essid:[]
+bssid:[a4:56:02:43:8e:15], channel:[13], pow:[-90 dBm], essid_crc:[29], essid:[TP_LINK_YD]
+bssid:[98:bc:57:5b:99:c3], channel:[ 2], pow:[-79 dBm], essid_crc:[c0], essid:[ChinaNGB-YdBqdG]
+bssid:[d0:60:8c:4c:5f:c1], channel:[ 7], pow:[-85 dBm], essid_crc:[56], essid:[ChinaNet-s4Ax]
+down iface wlan1
+set iface wlan1 type to monitor
+up iface wlan1
+airkiss_local_context size:128
+Airkiss version: V1.3
+exec cmd: iw wlan1 set channel 3
+exec cmd: iw wlan1 set channel 11
 exec cmd: iw wlan1 set channel 1
-exec cmd: iw wlan1 set channel 2
-exec cmd: iw wlan1 set channel 6
+exec cmd: iw wlan1 set channel 9
 exec cmd: iw wlan1 set channel 13
-scan all channels
-exec cmd: iw wlan1 set channel 1
 exec cmd: iw wlan1 set channel 2
+exec cmd: iw wlan1 set channel 7
+scan all channels
+exec cmd: iw wlan1 set channel 3
+exec cmd: iw wlan1 set channel 11
+exec cmd: iw wlan1 set channel 1
+exec cmd: iw wlan1 set channel 9
+exec cmd: iw wlan1 set channel 13
+exec cmd: iw wlan1 set channel 2
+exec cmd: iw wlan1 set channel 7
+scan all channels
+exec cmd: iw wlan1 set channel 3
+exec cmd: iw wlan1 set channel 11
 airkiss_recv_discover success
-base len:76
-Lock channel in 2
+base len:78
+Lock channel in 11
 airkiss_process_magic_code success
-total_len:22, ssid crc:78
+total_len:26, ssid crc:fe
 airkiss_process_prefix_code success
-pswd_len:9, pswd_lencrc:9c, need seq:3, seq map:7
-seq:0, 31,32,33,34
-now seq map:1
-seq:1, 35,36,37,38
-now seq map:3
-seq:3, 2d,4c,49,4e
-now seq map:3
-seq:1, 35,36,37,38
-now seq map:3
-seq:0, 31,32,34,35
-CRC check error, invalid sequence, Discared it.
-seq:3, 2d,4c,49,4e
-now seq map:3
-seq:0, 31,32,33,34
-now seq map:3
-seq:2, 39,b7,54,50
-now seq map:7
+pswd_len:19, pswd_lencrc:7f, need seq:5, seq map:1f
+[seq:0]:71,77,65,72 	->seq mapped:1
+[seq:2]:6f,70,31,32 	->seq mapped:5
+[seq:3]:33,34,35,36 	->seq mapped:d
+[seq:4]:37,38,39,f7 	->seq mapped:1d
+[seq:0]:71,77,65,72 	->crc check error, discaring invalid sequence.
+[seq:1]:74,79,75,69 	->seq mapped:1f
+User data is :71 77 65 72 74 79 75 69 6f 70 31 32 33 34 35 36 37 38 39 f7 00 00 00 00 00 00 00 00 00 00 
 Airkiss completed.
-get result:
-reserved:78
-key:123456789
-key_len:9
-random:183
+Result: ssid_crc:fe
+key:qwertyuiop123456789
+key_len:19
+random:0xf7
 Sending random to broadcast..
 ```
 
@@ -133,10 +136,8 @@ Sending random to broadcast..
 
 ## Known issue
 
-- ssid如果为中文则显示为空
 - 暂未对wifi密码进行AES加/解密
 
-[xrf]: http://www.xrf.net.cn
 [akdbg]: http://iot.weixin.qq.com/wiki/doc/wifi/AirKissDebugger.apk
 [airkiss]:http://iot.weixin.qq.com/wiki/doc/wifi/AirKissDoc.pdf
 [smartcfg]:http://processors.wiki.ti.com/index.php/CC3000_Smart_Config

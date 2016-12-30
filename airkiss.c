@@ -311,14 +311,14 @@ static void airkiss_process_sequence(unsigned short length)
         tempBuffer[4]=_akcontext.data.seq_code.record[4]&0xFF;
         tempBuffer[5]=_akcontext.data.seq_code.record[5]&0xFF;
 
-        akconf->printf("[seq:%d]:%x,%x,%x,%x \t", tempBuffer[1], tempBuffer[2], tempBuffer[3], tempBuffer[4], tempBuffer[5]);
+        akconf->printf("[seq:%d]:%x,%x,%x,%x \t->", tempBuffer[1], tempBuffer[2], tempBuffer[3], tempBuffer[4], tempBuffer[5]);
         if(tempBuffer[0] == (calcrc_bytes(tempBuffer+1,5)&0x7F) )
         {
             int cur_seq = tempBuffer[1];
 
             airkiss_add_seq_data(&tempBuffer[2], cur_seq);
 
-            akconf->printf("now seq map:%x.\n", _akcontext.seq_success_map);
+            akconf->printf("seq mapped:%x\n", _akcontext.seq_success_map);
             resest_airkiss_data();
 
             if(_akcontext.seq_success_map_cmp == _akcontext.seq_success_map)
@@ -326,8 +326,9 @@ static void airkiss_process_sequence(unsigned short length)
                 int i;
                 akconf->printf("User data is :");
                 for(i=0;i<_akcontext.pswd_len + 1 + 10; i++) {
-                    akconf->printf("0x%02x, ",_akcontext.usr_data[i]);
+                    akconf->printf("%02x ",_akcontext.usr_data[i]);
                 }
+                akconf->printf("\n");
                 _akcontext.random_num = _akcontext.usr_data[_akcontext.pswd_len];
                 _akcontext.usr_data[_akcontext.pswd_len] = 0;
                 _akcontext.pwd = (char*)_akcontext.usr_data;

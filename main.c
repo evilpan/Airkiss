@@ -212,7 +212,6 @@ int main(int argc, char *argv[])
         LOG_ERROR("ERROR to scan AP, init with all %d channels", MAX_CHANNELS);
         init_channels();
     }
-    return 0;
 
     /* Open the interface and set mode monitor */
 	wi = wi_open(wifi_if);
