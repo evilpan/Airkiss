@@ -14,6 +14,7 @@
 #include "airkiss.h"
 
 #define MAX_CHANNELS 14
+#define DEBUG 0
 
 static airkiss_context_t *akcontex = NULL;
 const airkiss_config_t akconf = { 
@@ -38,7 +39,6 @@ pthread_mutex_t lock;
 void switch_channel_callback(void)
 {
     pthread_mutex_lock(&lock);
-    //LOG_TRACE("Current channel is: %d", channel);
     g_channel_index++;
     if(g_channel_index > g_channel_nums - 1)
     {
@@ -72,8 +72,11 @@ int process_airkiss(const unsigned char *packet, int size)
     {
         LOG_TRACE("Airkiss completed.");
         airkiss_get_result(akcontex, &ak_result);
-        LOG_TRACE("Result: ssid_crc:%x\nkey:%s\nkey_len:%d\nrandom:0x%02x", 
-            ak_result.reserved, ak_result.pwd, ak_result.pwd_length, ak_result.random);
+        LOG_TRACE("Result:\n ssid_crc:[%x]\nkey_len:[%d]\nkey:[%s]\nrandom:[0x%02x]", 
+            ak_result.reserved,
+            ak_result.pwd_length,
+            ak_result.pwd,
+            ak_result.random);
 
         //TODO: scan and connect to wifi
         
@@ -81,16 +84,18 @@ int process_airkiss(const unsigned char *packet, int size)
     }
     pthread_mutex_unlock(&lock);
 
-    /* print  header */
-    //LOG_TRACE("[len: %d, airkiss ret: %d]", size, ret);
-    //int i;
-    //unsigned char ch;
-    //for(i=0; i<24; i++)
-    //{
-    //    ch = (unsigned char)*(packet + i);
-    //    printf("%02x ", ch);
-    //}
-    //LOG_TRACE(" ");
+    if(DEBUG) {
+        /* print  header */
+        printf("len:%4d, airkiss ret:%d [ ", size, ret);
+        int i;
+        unsigned char ch;
+        for(i=0; i<24; i++)
+        {
+            ch = (unsigned char)*(packet + i);
+            printf("%02x ", ch);
+        }
+        printf("]\n");
+    }
     return ret;
 }
 
@@ -238,7 +243,7 @@ int main(int argc, char *argv[])
     }
 
     /* Setup channel switch timer */
-    startTimer(&my_timer, 200);   
+    startTimer(&my_timer, 500);   
     signal(SIGALRM,(__sighandler_t)&switch_channel_callback);
     
    

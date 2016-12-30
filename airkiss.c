@@ -116,13 +116,15 @@ const char* airkiss_version(void)
     return airkiss_vers;
 }
 
-// packet filter
-// return 0 is valid
+/* return 1 is valid 
+ * return 0 is invalid
+ * */
 int airkiss_filter(const unsigned char *frame, int size)
 {
+    int isvalid = 0;
     // after discover
     if(size < 24)
-        return 1;
+        goto invalid;
 
     int i;
     unsigned char ch;
@@ -134,16 +136,35 @@ int airkiss_filter(const unsigned char *frame, int size)
     //Address 1
     for(i=4; i<10; i++)
         if(akcontex->dummy[i]!=akcontex->dummyap[i])
-            return 1;
+            goto invalid;
     //Address 2
     for(i=10; i<16; i++)
         if(akcontex->dummy[i]!=akcontex->dummyap[i])
-            return 1;
+            goto invalid;
     //Address 3
     for(i=16; i<22; i++)
         if(akcontex->dummy[i]!=akcontex->dummyap[i])
-            return 1;
-    return 0;
+            goto invalid;
+
+    isvalid = 1;
+
+invalid:
+    return isvalid;
+}
+
+/* return 1 is valid 
+ * return 0 is invalid
+ * */
+int airkiss_discover_filter(const unsigned char *frame, int size)
+{
+    int isvalid = 0;
+    // before discover
+    if(size < 50)
+        goto invalid;
+
+    isvalid = 1;
+invalid:
+    return isvalid;
 }
 
 static void airkiss_record_move_ones(void *base_addr, int record_num)
@@ -303,7 +324,7 @@ static void airkiss_process_sequence(unsigned short length)
         ((_akcontext.data.seq_code.record[5]&0x0100)==0x0100) && 
         ((_akcontext.data.seq_code.record[1]&0x7F) <= ((_akcontext.total_len>>2)+1)))
     {
-        unsigned char tempBuffer[6];
+        unsigned char tempBuffer[6] = {0};
         tempBuffer[0]=_akcontext.data.seq_code.record[0]&0x7F; //seq crc
         tempBuffer[1]=_akcontext.data.seq_code.record[1]&0x7F; //seq index
         tempBuffer[2]=_akcontext.data.seq_code.record[2]&0xFF; //data, same as following
@@ -311,7 +332,10 @@ static void airkiss_process_sequence(unsigned short length)
         tempBuffer[4]=_akcontext.data.seq_code.record[4]&0xFF;
         tempBuffer[5]=_akcontext.data.seq_code.record[5]&0xFF;
 
-        akconf->printf("[seq:%d]:%x,%x,%x,%x \t->", tempBuffer[1], tempBuffer[2], tempBuffer[3], tempBuffer[4], tempBuffer[5]);
+        akconf->printf("[seq:%d]:%02x,%02x,%02x,%02x; [crc:%02x]; ",
+                tempBuffer[1],
+                tempBuffer[2], tempBuffer[3], tempBuffer[4], tempBuffer[5],
+                tempBuffer[0]);
         if(tempBuffer[0] == (calcrc_bytes(tempBuffer+1,5)&0x7F) )
         {
             int cur_seq = tempBuffer[1];
@@ -339,7 +363,9 @@ static void airkiss_process_sequence(unsigned short length)
         }
         else
         {
-            akconf->printf("crc check error, discaring invalid sequence.\n");
+            akconf->printf("crc check error. receive crc:[%02x], calc crc:[%02x]\n",
+                    tempBuffer[0],
+                    calcrc_bytes(tempBuffer+1,5));
         }
     }
 }
@@ -350,15 +376,17 @@ int airkiss_recv(airkiss_context_t* context,
 {
 
     if(_akcontext.airkiss_state != AIRKISS_STATE_IDLE)
-        if(airkiss_filter(frame, length)!=0)
+        if(!airkiss_filter(frame, length))
             return AIRKISS_STATUS_CONTINUE;
 
     switch(_akcontext.airkiss_state)
     {
         case AIRKISS_STATE_IDLE:
-            airkiss_recv_discover(frame, length);
-            if(_akcontext.airkiss_state == AIRKISS_STATE_SRC_LOCKED)
-                return AIRKISS_STATUS_CHANNEL_LOCKED;
+            if(airkiss_discover_filter(frame, length)) {
+                airkiss_recv_discover(frame, length);
+                if(_akcontext.airkiss_state == AIRKISS_STATE_SRC_LOCKED)
+                    return AIRKISS_STATUS_CHANNEL_LOCKED;
+            }
             break;
         case AIRKISS_STATE_SRC_LOCKED:
             airkiss_process_magic_code(length);
