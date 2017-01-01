@@ -58,75 +58,71 @@ $ sudo ./airkiss wlan1
 ```
 
 其中wlan1是所选择的无线网卡, 开始运行后可以用微信公众号或者airkiss\_debugger发送wifi密码进行测试, 
-如发送密码1234567890,则有如下输出:
+如发送密码`myfuckingcomplexpasswd`,则有如下输出:
 
 ```
 Scanning accesss point...
 Scan success.
-bssid:[cc:81:da:43:ea:e0], channel:[ 3], pow:[-68 dBm], essid_crc:[2c], essid:[@PHICOMM_D8]
-bssid:[d4:ee:07:0d:16:4c], channel:[ 3], pow:[-82 dBm], essid_crc:[a4], essid:[NO.9]
-bssid:[bc:46:99:af:d3:f6], channel:[11], pow:[-50 dBm], essid_crc:[fe], essid:[jin123]
+bssid:[bc:46:99:af:d3:f6], channel:[11], pow:[-65 dBm], essid_crc:[fe], essid:[jin123]
+bssid:[f8:d1:11:f1:3f:d6], channel:[ 1], pow:[-86 dBm], essid_crc:[e3], essid:[manson]
 bssid:[a4:56:02:73:bb:03], channel:[ 1], pow:[-75 dBm], essid_crc:[40], essid:[360WiFi-73BB03]
-bssid:[d4:67:e7:0f:9b:51], channel:[ 1], pow:[-91 dBm], essid_crc:[00], essid:[ChinaNet-KnHF]
-bssid:[f4:b8:a7:6c:72:39], channel:[ 3], pow:[-86 dBm], essid_crc:[72], essid:[ChinaNet-TkT4]
-bssid:[08:57:00:5c:74:ca], channel:[ 1], pow:[-80 dBm], essid_crc:[ff], essid:[chai]
-bssid:[24:69:68:e9:78:d4], channel:[ 1], pow:[-87 dBm], essid_crc:[ac], essid:[TP-501]
-bssid:[f8:d1:11:f1:3f:d6], channel:[ 1], pow:[-68 dBm], essid_crc:[e3], essid:[manson]
-bssid:[c8:3a:35:48:32:80], channel:[ 9], pow:[-87 dBm], essid_crc:[25], essid:[Tenda_1003]
-bssid:[12:95:8e:60:f2:e4], channel:[11], pow:[-79 dBm], essid_crc:[62], essid:[TPGuest_F2E4]
-bssid:[c4:36:55:98:9a:75], channel:[11], pow:[-48 dBm], essid_crc:[00], essid:[]
-bssid:[a4:56:02:43:8e:15], channel:[13], pow:[-90 dBm], essid_crc:[29], essid:[TP_LINK_YD]
-bssid:[98:bc:57:5b:99:c3], channel:[ 2], pow:[-79 dBm], essid_crc:[c0], essid:[ChinaNGB-YdBqdG]
-bssid:[d0:60:8c:4c:5f:c1], channel:[ 7], pow:[-85 dBm], essid_crc:[56], essid:[ChinaNet-s4Ax]
+bssid:[d4:67:e7:0f:9b:51], channel:[ 1], pow:[-86 dBm], essid_crc:[00], essid:[ChinaNet-KnHF]
+bssid:[c4:36:55:98:9a:75], channel:[11], pow:[-56 dBm], essid_crc:[00], essid:[]
+bssid:[12:95:8e:60:f2:e4], channel:[11], pow:[-92 dBm], essid_crc:[62], essid:[TPGuest_F2E4]
+bssid:[cc:81:da:43:ea:e0], channel:[ 3], pow:[-82 dBm], essid_crc:[2c], essid:[@PHICOMM_D8]
+bssid:[f4:b8:a7:6c:72:39], channel:[ 3], pow:[-82 dBm], essid_crc:[72], essid:[ChinaNet-TkT4]
+bssid:[bc:46:99:43:b5:c4], channel:[ 6], pow:[-91 dBm], essid_crc:[f2], essid:[TP-LINK_B5C4]
+bssid:[ec:26:ca:f6:5f:ba], channel:[ 6], pow:[-89 dBm], essid_crc:[df], essid:[TP-LINK_1301]
+bssid:[b0:95:8e:60:f2:e4], channel:[11], pow:[-92 dBm], essid_crc:[2c], essid:[TP-LINK_F2E4]
 down iface wlan1
 set iface wlan1 type to monitor
 up iface wlan1
 airkiss_local_context size:128
 Airkiss version: V1.3
+exec cmd: iw wlan1 set channel 1
 exec cmd: iw wlan1 set channel 3
+exec cmd: iw wlan1 set channel 6
+scan all channels
 exec cmd: iw wlan1 set channel 11
 exec cmd: iw wlan1 set channel 1
-exec cmd: iw wlan1 set channel 9
-exec cmd: iw wlan1 set channel 13
-exec cmd: iw wlan1 set channel 2
-exec cmd: iw wlan1 set channel 7
-scan all channels
 exec cmd: iw wlan1 set channel 3
+exec cmd: iw wlan1 set channel 6
+scan all channels
 exec cmd: iw wlan1 set channel 11
 exec cmd: iw wlan1 set channel 1
-exec cmd: iw wlan1 set channel 9
-exec cmd: iw wlan1 set channel 13
-exec cmd: iw wlan1 set channel 2
-exec cmd: iw wlan1 set channel 7
-scan all channels
 exec cmd: iw wlan1 set channel 3
+exec cmd: iw wlan1 set channel 6
+scan all channels
+exec cmd: iw wlan1 set channel 11
+exec cmd: iw wlan1 set channel 1
+exec cmd: iw wlan1 set channel 3
+exec cmd: iw wlan1 set channel 6
+scan all channels
 exec cmd: iw wlan1 set channel 11
 airkiss_recv_discover success
 base len:78
 Lock channel in 11
 airkiss_process_magic_code success
-total_len:65, ssid crc:fe
+total_len:29, ssid crc:fe
 airkiss_process_prefix_code success
-pswd_len:10, pswd_lencrc:7e, need seq:3, seq map:7
-[seq:0]:31,32,32,33; [crc:71]; crc check error. receive crc:[71], calc crc:[b6]
-[seq:1]:36,37,39,69; [crc:34]; crc check error. receive crc:[34], calc crc:[4e]
-[seq:1]:35,36,39,30; [crc:01]; crc check error. receive crc:[01], calc crc:[2a]
-[seq:1]:35,36,37,38; [crc:34]; seq mapped:2
-[seq:2]:39,39,39,30; [crc:6b]; crc check error. receive crc:[6b], calc crc:[29]
-[seq:2]:30,af,6a,6a; [crc:6b]; crc check error. receive crc:[6b], calc crc:[c4]
-[seq:3]:69,6e,31,32; [crc:77]; seq mapped:2
-[seq:0]:31,32,33,34; [crc:71]; seq mapped:3
-[seq:1]:35,36,37,38; [crc:34]; seq mapped:3
-[seq:3]:69,6e,6e,6e; [crc:77]; crc check error. receive crc:[77], calc crc:[e0]
-[seq:0]:32,33,34,34; [crc:71]; crc check error. receive crc:[71], calc crc:[bc]
-[seq:2]:39,30,af,6a; [crc:6b]; seq mapped:7
-User data is :31 32 33 34 35 36 37 38 39 30 af 6a 00 00 00 00 00 00 00 00 00 
+pswd_len:22, pswd_lencrc:40, need seq:6, seq map:3f
+[crc:00][index:0]:6d,79,66,75; crc check error. calc crc:[00]
+[crc:23][index:1]:63,6b,69,6e; seq mapped:2
+[crc:0e][index:2]:67,63,6f,6d; seq mapped:6
+[crc:40][index:4]:70,61,73,73; seq mapped:16
+[crc:3d][index:5]:77,64,64,6a; seq mapped:36
+[crc:25][index:6]:69,6e,31,32; seq mapped:36
+[crc:5b][index:0]:6d,79,66,75; seq mapped:37
+[crc:23][index:1]:63,6b,69,6e; seq mapped:37
+[crc:0e][index:2]:67,63,6f,6d; seq mapped:37
+[crc:67][index:3]:70,6c,65,78; seq mapped:3f
+User data is :6d 79 66 75 63 6b 69 6e 67 63 6f 6d 70 6c 65 78 70 61 73 73 77 64 64 6a 00 00 00 00 00 00 00 00 00 
 Airkiss completed.
 Result:
 ssid_crc:[fe]
-key_len:[10]
-key:[1234567890]
-random:[0xaf]
+key_len:[22]
+key:[myfuckingcomplexpasswd]
+random:[0x64]
 Sending random to broadcast..
 ```
 

@@ -332,10 +332,9 @@ static void airkiss_process_sequence(unsigned short length)
         tempBuffer[4]=_akcontext.data.seq_code.record[4]&0xFF;
         tempBuffer[5]=_akcontext.data.seq_code.record[5]&0xFF;
 
-        akconf->printf("[seq:%d]:%02x,%02x,%02x,%02x; [crc:%02x]; ",
-                tempBuffer[1],
-                tempBuffer[2], tempBuffer[3], tempBuffer[4], tempBuffer[5],
-                tempBuffer[0]);
+        akconf->printf("[crc:%02x][index:%d]:%02x,%02x,%02x,%02x; ",
+                tempBuffer[0], tempBuffer[1],
+                tempBuffer[2], tempBuffer[3], tempBuffer[4], tempBuffer[5]);
         if(tempBuffer[0] == (calcrc_bytes(tempBuffer+1,5)&0x7F) )
         {
             int cur_seq = tempBuffer[1];
@@ -363,7 +362,7 @@ static void airkiss_process_sequence(unsigned short length)
         }
         else
         {
-            akconf->printf("crc check error. receive crc:[%02x], calc crc:[%02x]\n",
+            akconf->printf("crc check error. calc crc:[%02x]\n",
                     tempBuffer[0],
                     calcrc_bytes(tempBuffer+1,5));
         }
