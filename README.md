@@ -8,13 +8,14 @@
 又称为混杂模式(promiscuous mode), 从而获取周围的802.11无线数据帧, 俗称抓包. 
 加密的无线数据中length字段是可见的,利用这个字段我们就能约定一种传输数据的协议,
 从而在硬件设备初次进入环境时为其提供wifi的帐号密码等信息.
-其原型是TI最早提出的[Smart Config][smartcfg].
+其联网方式类似于TI的[Smart Config][smartcfg].
 
 由于微信官方的airkiss静态库调试起来很不方便,而且也无法按需要进行拓展,
-因此在已公开的Airkiss协议基础上实现了一份C代码. 
+因此在已公开的Airkiss协议基础上实现了一份C代码.用作研究和参考.
 
 > 注:  
 > 本例程实现的源码在[airkiss\_debugger][akdbg]以及微信(6.3.31)上测试通过, 但不保证100%兼容微信官方的静态库.  
+> 如果要使用于生产环境,最好还是获取微信官方的静态库,对于不常见的硬件设备也可以申请获取对应交叉编译的版本.
 
 具体的实现细节可以参考下列**非官方**的资料和文档:
 
@@ -126,6 +127,7 @@ random:[0x64]
 Sending random to broadcast..
 ```
 
+由于非官方的文档已经比较老旧,新版的airkiss流程也做了不少改变,
 一个优化的地方是airkiss上层在抓包之前先扫描附近的无线热点并记录其ssid/crc以及信道,从而使得airkiss
 只用在这几个信道切换抓包. 另外为了加快Airkiss进度,ssid部分不从data字段读取而只取其crc(用reserved字段记录),
 上层应用将记录的ssid/crc进行对比,则可以获取目标的ssid信息并连接.连接后根据airkiss协议,
@@ -144,6 +146,7 @@ Sending random to broadcast..
 ## Known issue
 
 - 暂未对wifi密码进行AES加/解密
+- 热点名称为中文时显示为空
 
 [akdbg]: http://iot.weixin.qq.com/wiki/doc/wifi/AirKissDebugger.apk
 [airkiss]:http://iot.weixin.qq.com/wiki/doc/wifi/AirKissDoc.pdf
