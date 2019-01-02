@@ -1,7 +1,7 @@
 ELF = airkiss
 SRCS = main.c 
 SRCS += capture/common.c capture/osdep.c capture/linux.c capture/radiotap/radiotap-parser.c
-SRCS += utils/wifi_scan.c airkiss.c
+SRCS += utils/wifi_scan.c airkiss.c aes/aes.c aes/aes_dec.c
 OBJS = $(patsubst %.c,%.o,$(SRCS))
 
 LIBIW = -liw
