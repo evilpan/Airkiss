@@ -5,6 +5,11 @@
 
 #define PASSWORD_MAX_LEN    32
 #define ESSID_MAX_LEN        32
+#define AES_KEY_LEN	16
+static unsigned char aes_key[16];
+static int aeskey_set = 0;
+extern int aes_128_cbc_decrypt(const unsigned char * key, const unsigned char * iv,
+	unsigned char *data, size_t data_len);
 
 #define USR_DATA_BUFF_MAX_SIZE    (PASSWORD_MAX_LEN + 1 + ESSID_MAX_LEN)
 typedef enum
@@ -193,6 +198,45 @@ static void airkiss_add_seq_data(const unsigned char *data, int seq)
     }
 }
 
+static void airkiss_hexdump(const char *title, unsigned char *buf, size_t len)
+{
+	int i;
+
+	printf("%s(len=%d) ", title, (int)len);
+	for (i = 0; i < len; i++)
+		printf("0x%02x ", buf[i]);
+	printf("\n");
+}
+
+int airkiss_aescbc128_decrpyt()
+{
+	int rx_pwd_len = _akcontext.pswd_len;
+	int psk_len;
+	unsigned char *enpsk, *pos;
+
+	if (!aeskey_set || !rx_pwd_len)
+		return 0;
+	pos = enpsk = malloc(rx_pwd_len);
+	if (!enpsk)
+		return -1;
+	memcpy(enpsk, _akcontext.pwd, rx_pwd_len);
+	airkiss_hexdump("Rx encrypted psk:", enpsk, rx_pwd_len);
+	if (aes_128_cbc_decrypt(aes_key, aes_key, enpsk, rx_pwd_len))
+		return -1;
+	while (*pos > 0x10 && (pos - enpsk) < rx_pwd_len)
+		pos++;
+	psk_len = pos - enpsk;
+	memcpy(_akcontext.usr_data, enpsk, psk_len);
+	airkiss_hexdump("Rx decrypted psk:", enpsk, psk_len);
+	/* rebuild usrdata when decryption success */
+	memmove(_akcontext.usr_data + psk_len, _akcontext.usr_data + _akcontext.pswd_len, _akcontext.ssid_len + 1);
+	_akcontext.pswd_len = psk_len; /* real psk len*/
+	airkiss_hexdump("Rx decrypted data:", _akcontext.usr_data,
+		_akcontext.pswd_len + _akcontext.ssid_len + 1);
+	free(enpsk);
+	return 0;
+}
+
 int airkiss_init(airkiss_context_t* context, 
                             const airkiss_config_t* config)
 {
@@ -204,6 +248,8 @@ int airkiss_init(airkiss_context_t* context,
 
     akconf->memset(&_akcontext , 0, sizeof(_airkiss_local_context));
     _akcontext.airkiss_state = AIRKISS_STATE_IDLE;
+    aeskey_set = 0;
+    memset(aes_key, 0, sizeof(aes_key));
 
     akconf->printf("airkiss_local_context size:%ld\n", sizeof(_airkiss_local_context));
     return 0;
@@ -358,6 +404,7 @@ static void airkiss_process_sequence(unsigned short length)
                 //_akcontext.ssid = (char*)_akcontext.usr_data + _akcontext.pswd_len + 1;
                 //_akcontext.usr_data[_akcontext.pswd_len + 1 + _akcontext.ssid_len] = 0;
                 _akcontext.airkiss_state = AIRKISS_STATE_COMPLETE;
+                airkiss_aescbc128_decrpyt();
             }
         }
         else
@@ -419,4 +466,45 @@ int airkiss_change_channel(airkiss_context_t* context)
     memset(context, 0, sizeof(airkiss_context_t));
     resest_airkiss_data();
     return 0;
+}
+
+int airkiss_set_key(airkiss_context_t *txt, const unsigned char *key, unsigned int key_len)
+{
+	if (!key)
+		return -1;
+	if (key_len > AES_KEY_LEN)
+		key_len = AES_KEY_LEN;
+	memcpy(aes_key, key, key_len);
+	aeskey_set = 1;
+	return 0;
+}
+
+/* test function */
+void airkiss_aescbc128_test()
+{
+	unsigned char key[] = {
+		0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37, 0x38,
+		0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37, 0x38
+	};
+	unsigned char ssid[] = {
+		0x31, 0x32, 0x31, 0x32,
+	};
+	unsigned char cipher[] = {
+		0xb7, 0xfc, 0x2b, 0x0e, 0xa4, 0x78, 0x01, 0xd2,
+		0x4a, 0x1f, 0x04, 0x9e, 0xb2, 0x9c, 0xbe, 0x84
+	};
+	/* unsigned char plain[] = {
+	 *	0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37, 0x38,
+	 *	0x38, 0x37, 0x36, 0x35, 0x34, 0x33, 0x31, 0x01 // for 16bytes alignment
+	 * },
+	 */
+	_akcontext.pswd_len = 16;
+	_akcontext.ssid_len = 4;
+	_akcontext.pwd = (char *)_akcontext.usr_data;
+	memcpy(_akcontext.usr_data, cipher, 16); /* psk */
+	*(_akcontext.usr_data + 16) = 0xff; /* random */
+	memcpy(_akcontext.usr_data + 16 + 1, ssid, 4); /* ssid */
+	memcpy(aes_key, key, 16);
+	aeskey_set = 1;
+	airkiss_aescbc128_decrpyt();
 }

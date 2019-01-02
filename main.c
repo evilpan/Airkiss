@@ -179,6 +179,7 @@ int main(int argc, char *argv[])
 {
     if(argc!=2)
     {
+	airkiss_aescbc128_test();
         LOG_ERROR("Usage: %s <device-name>", argv[0]);
         return 1;
     }
